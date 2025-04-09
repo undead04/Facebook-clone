@@ -31,6 +31,7 @@ const userSchema = new Schema<IUser>(
       coverPhoto: { type: String, default: "" },
       bio: { type: String, default: "" },
       birthday: { type: Date, default: null },
+      location: { type: String, default: "" },
       gender: { type: String, enum: ["male", "female", "other"] },
       friendsCount: { type: Number, default: 0 },
     },

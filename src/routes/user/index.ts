@@ -12,20 +12,22 @@ import {
 import { Router } from "express";
 import authMiddleware from "../../middlewares/auth.middlware";
 import upload from "../../middlewares/multer.middlware";
+import { validateBody } from "../../middlewares/validate.middleware";
+import {
+  updateUserInput,
+  changePasswordInput,
+} from "../../validations/user/index";
 const router = Router();
 
-router.use(upload.single("avatar"));
-router.use(upload.single("coverPhoto"));
 router.use(authMiddleware);
 
 router.get("/me", getMe);
-router.put("/me", updateMe);
-router.put("/me/avatar", updateAvatar);
-router.put("/me/cover-photo", updateCoverPhoto);
+router.patch("/me", validateBody(updateUserInput), updateMe);
+router.patch("/me/avatar", upload.single("avatar"), updateAvatar);
+router.patch("/me/cover-photo", upload.single("coverPhoto"), updateCoverPhoto);
 router.delete("/me/avatar", deleteAvatar);
 router.delete("/me/cover-photo", deleteCoverPhoto);
-router.put("/me/password", changePassword);
-router.get("/:userId", getUserById);
+router.patch("/me/password", validateBody(changePasswordInput), changePassword);
 router.get("/search", getUserByName);
-
+router.get("/:userId", getUserById);
 export default router;

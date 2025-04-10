@@ -10,8 +10,10 @@ export interface IUser {
   profile: {
     firstName: string;
     lastName: string;
-    avatar: string;
-    coverPhoto: string;
+    avatarName: string;
+    coverPhotoName: string;
+    avatarUrl: string;
+    coverPhotoUrl: string;
     bio: string;
     birthday: Date;
     gender: string;
@@ -27,8 +29,10 @@ const userSchema = new Schema<IUser>(
     profile: {
       firstName: { type: String, required: true },
       lastName: { type: String, required: true },
-      avatar: { type: String, default: "" },
-      coverPhoto: { type: String, default: "" },
+      avatarName: { type: String, default: "" },
+      coverPhotoName: { type: String, default: "" },
+      avatarUrl: { type: String, default: "" },
+      coverPhotoUrl: { type: String, default: "" },
       bio: { type: String, default: "" },
       birthday: { type: Date, default: null },
       location: { type: String, default: "" },

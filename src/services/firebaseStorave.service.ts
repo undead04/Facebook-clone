@@ -1,6 +1,7 @@
 import { initializeApp, cert, ServiceAccount } from "firebase-admin/app";
 import { getStorage } from "firebase-admin/storage";
 import config from "../configs/config";
+import { getFilePathFromUrl } from "../utils";
 // Đường dẫn tới file key JSON của Firebase
 const serviceAccount =
   require("../configs/firebase-key.json") as ServiceAccount;
@@ -26,9 +27,8 @@ class FirebaseStorageService {
         contentType: "image/jpeg", // hoặc 'image/png', 'application/pdf' tùy loại file
       },
     });
-
     await file.makePublic(); // Nếu muốn public file
-    return file.publicUrl();
+    return { url: file.publicUrl(), filePath };
   }
 
   static async uploadLocalFile(filePath: string, destination: string) {
@@ -46,8 +46,13 @@ class FirebaseStorageService {
 
   static async deleteFile(filePath: string) {
     const file = bucket.file(filePath);
-    await file.delete();
-    return true;
+    console.log("[DELETE] File:", filePath);
+    return await file.delete();
+  }
+  static async fileExists(filePath: string): Promise<boolean> {
+    const file = bucket.file(filePath);
+    const [exists] = await file.exists();
+    return exists;
   }
 }
 

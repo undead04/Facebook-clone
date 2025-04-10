@@ -10,17 +10,10 @@ export const notificationConsumer = {
       const { channel } = await connectRabbitMQ();
       const notificationQueue = "notificationQueue";
 
-      // TTL: xử lý thông báo hết hạn hoặc cần delay
-      channel.consume(notificationQueue, (msg) => {
-        if (msg) {
-          console.log("[TTL] Message:", msg.content.toString());
-          channel.ack(msg);
-        }
-      });
-
       // Logic: xử lý nghiệp vụ chính
       channel.consume(notificationQueue, async (msg) => {
         if (!msg) return;
+        console.log("[TTL] Message notification:", msg.content.toString());
         try {
           const data: NotificationOptions = JSON.parse(msg.content.toString());
 

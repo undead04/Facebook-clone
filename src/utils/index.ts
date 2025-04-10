@@ -75,7 +75,13 @@ const verifyToken = async (token: string): Promise<JwtPayload> => {
   });
 };
 
+const getFilePathFromUrl = (url: string): string | null => {
+  const match = url.match(/\/([^\/]+\/[^\/]+\.\w+)$/);
+  return match ? match[1] : null;
+};
+
 export {
+  getFilePathFromUrl,
   getInfoData,
   getSelectData,
   unSelectData,

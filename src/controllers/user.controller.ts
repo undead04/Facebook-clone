@@ -5,7 +5,7 @@ import { Request, Response } from "express";
 const service = new UserService();
 
 const getMe = asyncHandle(async (req: Request, res: Response) => {
-  const { userId } = (req as any).user.id;
+  const userId = (req as any).user._id;
   new OK({
     message: "Get me successfully",
     metaData: await service.getMe(userId),
@@ -13,8 +13,8 @@ const getMe = asyncHandle(async (req: Request, res: Response) => {
 });
 
 const updateMe = asyncHandle(async (req: Request, res: Response) => {
-  const { userId } = (req as any).user.id;
-  const { body } = req.body;
+  const userId = (req as any).user._id;
+  const body = req.body;
   new OK({
     message: "Update me successfully",
     metaData: await service.updateMe(userId, body),
@@ -22,7 +22,7 @@ const updateMe = asyncHandle(async (req: Request, res: Response) => {
 });
 
 const updateAvatar = asyncHandle(async (req: Request, res: Response) => {
-  const { userId } = (req as any).user.id;
+  const userId = (req as any).user._id;
   const { file } = req;
   new OK({
     message: "Update avatar successfully",
@@ -31,8 +31,9 @@ const updateAvatar = asyncHandle(async (req: Request, res: Response) => {
 });
 
 const updateCoverPhoto = asyncHandle(async (req: Request, res: Response) => {
-  const { userId } = (req as any).user.id;
+  const userId = (req as any).user._id;
   const { file } = req;
+
   new OK({
     message: "Update cover photo successfully",
     metaData: await service.updateCoverPhoto(userId, file),
@@ -40,7 +41,7 @@ const updateCoverPhoto = asyncHandle(async (req: Request, res: Response) => {
 });
 
 const deleteAvatar = asyncHandle(async (req: Request, res: Response) => {
-  const { userId } = (req as any).user.id;
+  const userId = (req as any).user._id;
   new OK({
     message: "Delete avatar successfully",
     metaData: await service.deleteAvatar(userId),
@@ -48,7 +49,7 @@ const deleteAvatar = asyncHandle(async (req: Request, res: Response) => {
 });
 
 const deleteCoverPhoto = asyncHandle(async (req: Request, res: Response) => {
-  const { userId } = (req as any).user.id;
+  const userId = (req as any).user._id;
   new OK({
     message: "Delete cover photo successfully",
     metaData: await service.deleteCoverPhoto(userId),
@@ -56,8 +57,8 @@ const deleteCoverPhoto = asyncHandle(async (req: Request, res: Response) => {
 });
 
 const changePassword = asyncHandle(async (req: Request, res: Response) => {
-  const { userId } = (req as any).user.id;
-  const { body } = req.body;
+  const userId = (req as any).user._id;
+  const body = req.body;
   new OK({
     message: "Change password successfully",
     metaData: await service.changePassword(userId, body),
@@ -65,7 +66,7 @@ const changePassword = asyncHandle(async (req: Request, res: Response) => {
 });
 
 const getUserById = asyncHandle(async (req: Request, res: Response) => {
-  const { userId } = req.params;
+  const userId = req.params.userId;
   new OK({
     message: "Get user by id successfully",
     metaData: await service.getMe(userId),

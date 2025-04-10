@@ -23,7 +23,7 @@ const authMiddleware = async (
 
     const decoded = jwt.verify(token, jwt_secret) as JwtPayload;
 
-    const user = await User.findById(decoded._id || decoded.id); // Tùy bạn encode token kiểu nào
+    const user = await User.findById(decoded._id || decoded.id).lean(); // Tùy bạn encode token kiểu nào
     if (!user) {
       throw new UnauthorizedError("User not found");
     }

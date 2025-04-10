@@ -5,15 +5,15 @@ import {
   updateUserInput,
 } from "../validations/user/index";
 import uploadImagePublish from "../messaging/uploadImagePublish";
-import { comparePassword, hashPassword } from "../utils";
+import { comparePassword, getInfoData, hashPassword } from "../utils";
+import deleteImagePublish from "../messaging/deleteImagePublish";
 export class UserService {
   getMe = async (userId: string) => {
-    const user = await userModel.findById(userId).lean();
+    const user = await userModel.findById(userId).select(["-password", "-__v"]);
     if (!user) {
       throw new BadRequestError("User not found");
     }
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    return user;
   };
 
   updateMe = async (userId: string, data: updateUserInput) => {
@@ -23,9 +23,9 @@ export class UserService {
       throw new BadRequestError("User not found");
     }
     // assign data to user
-    Object.assign(user, data);
+    Object.assign(user.profile, data);
     await user.save();
-    return user;
+    return getInfoData(["profile"], user);
   };
   updateAvatar = async (userId: string, avatar?: Express.Multer.File) => {
     const user = await userModel.findById(userId);
@@ -38,10 +38,9 @@ export class UserService {
         folder: "avatar",
         fileName: avatar.originalname,
         image: buffer,
+        userId,
       });
     }
-    await user.save();
-    return user;
   };
   updateCoverPhoto = async (
     userId: string,
@@ -57,17 +56,23 @@ export class UserService {
         folder: "coverPhoto",
         fileName: coverPhoto.originalname,
         image: buffer,
+        userId,
       });
     }
-    await user.save();
-    return user;
   };
   deleteAvatar = async (userId: string) => {
     const user = await userModel.findById(userId);
+
     if (!user) {
       throw new BadRequestError("User not found");
     }
-    user.profile.avatar = "";
+
+    // delete image from rabbitmq
+    await deleteImagePublish({ filePath: user.profile.avatarName });
+
+    user.profile.avatarUrl = "";
+    user.profile.avatarName = "";
+
     await user.save();
   };
   deleteCoverPhoto = async (userId: string) => {
@@ -75,12 +80,18 @@ export class UserService {
     if (!user) {
       throw new BadRequestError("User not found");
     }
-    user.profile.coverPhoto = "";
+    // delete image from rabbitmq
+    await deleteImagePublish({ filePath: user.profile.coverPhotoName });
+
+    user.profile.coverPhotoUrl = "";
+    user.profile.coverPhotoName = "";
+
     await user.save();
   };
 
   changePassword = async (userId: string, data: changePasswordInput) => {
     const user = await userModel.findById(userId);
+
     if (!user) {
       throw new BadRequestError("User not found");
     }
@@ -106,12 +117,10 @@ export class UserService {
 
     user.password = hashPassword(data.newPassword);
     await user.save();
-    return user;
   };
 
   findUserByName = async (keyword: string, page = 1, limit = 10) => {
     const skip = (page - 1) * limit;
-
     const users = await userModel
       .find(
         { $text: { $search: keyword } },

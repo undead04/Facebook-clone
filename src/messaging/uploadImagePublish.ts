@@ -6,6 +6,7 @@ export interface UploadImageOptions {
   folder: "avatar" | "coverPhoto" | "post";
   fileName: string;
   image: Buffer;
+  userId: string;
 }
 const uploadImagePublish = async (data: UploadImageOptions) => {
   try {

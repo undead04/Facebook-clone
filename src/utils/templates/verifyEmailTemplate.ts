@@ -18,7 +18,7 @@ export const generateVerifyEmailTemplate = (otpCode: string, name: string) => {
             </span>
           </div>
           <p style="font-size: 14px; color: #999;">
-            Mã xác minh có hiệu lực trong vòng <strong>5 phút</strong>. Vui lòng không chia sẻ mã này với bất kỳ ai.
+            Mã xác minh có hiệu lực trong vòng <strong>15 phút</strong>. Vui lòng không chia sẻ mã này với bất kỳ ai.
           </p>
           <hr style="margin: 40px 0;" />
           <p style="font-size: 12px; color: #aaa;">

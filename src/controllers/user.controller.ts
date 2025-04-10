@@ -1,6 +1,6 @@
-import { OK } from "middlewares/success.response";
-import asyncHandle from "helpers/asyncHandle";
-import { UserService } from "services/user.service";
+import { OK } from "../middlewares/success.response";
+import asyncHandle from "../helpers/asyncHandle";
+import { UserService } from "../services/user.service";
 import { Request, Response } from "express";
 const service = new UserService();
 

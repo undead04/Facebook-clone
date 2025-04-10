@@ -1,26 +1,29 @@
-import { initializeApp, cert, ServiceAccount } from 'firebase-admin/app';
-import { getStorage } from 'firebase-admin/storage';
-import * as path from 'path';
-import * as fs from 'fs';
-
+import { initializeApp, cert, ServiceAccount } from "firebase-admin/app";
+import { getStorage } from "firebase-admin/storage";
+import config from "../configs/config";
 // Đường dẫn tới file key JSON của Firebase
-const serviceAccount = require('../config/firebase-key.json') as ServiceAccount;
+const serviceAccount =
+  require("../configs/firebase-key.json") as ServiceAccount;
 
 initializeApp({
   credential: cert(serviceAccount),
-  storageBucket: 'your-bucket-name.appspot.com', // ví dụ: facebook-clone.appspot.com
+  storageBucket: config.firebaseStorageBucket, // ví dụ: facebook-clone.appspot.com
 });
 
 const bucket = getStorage().bucket();
 
 class FirebaseStorageService {
-  static async uploadBuffer(buffer: Buffer, fileName: string, folder = 'uploads') {
+  static async uploadBuffer(
+    buffer: Buffer,
+    fileName: string,
+    folder = "uploads"
+  ) {
     const filePath = `${folder}/${Date.now()}-${fileName}`;
     const file = bucket.file(filePath);
 
     await file.save(buffer, {
       metadata: {
-        contentType: 'image/jpeg', // hoặc 'image/png', 'application/pdf' tùy loại file
+        contentType: "image/jpeg", // hoặc 'image/png', 'application/pdf' tùy loại file
       },
     });
 
@@ -33,7 +36,7 @@ class FirebaseStorageService {
       destination,
       public: true,
       metadata: {
-        cacheControl: 'public, max-age=31536000',
+        cacheControl: "public, max-age=31536000",
       },
     };
 

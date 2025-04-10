@@ -8,10 +8,10 @@ import {
   updateAvatar,
   updateCoverPhoto,
   updateMe,
-} from "controllers/user.controller";
+} from "../../controllers/user.controller";
 import { Router } from "express";
-import authMiddleware from "middlewares/auth.middlware";
-import upload from "middlewares/multer.middlware";
+import authMiddleware from "../../middlewares/auth.middlware";
+import upload from "../../middlewares/multer.middlware";
 const router = Router();
 
 router.use(upload.single("avatar"));

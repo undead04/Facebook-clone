@@ -1,28 +1,31 @@
 "use strict";
-import { sendEmail } from "services/email.service";
+import { sendEmail } from "../../services/email.service";
 import { connectRabbitMQ } from "../../databases/init.rabbitmq";
 
-const emailService = {
+const emailConsumer = {
   consumerToQueueNormal: async () => {
     try {
       const { channel } = await connectRabbitMQ();
       const emailQueue = "emailQueue";
 
-      // TTL: xử lý thông báo hết hạn hoặc cần delay
-      channel.consume(emailQueue, (msg) => {
-        if (msg) {
-          console.log("[TTL] Message:", msg.content.toString());
-          channel.ack(msg);
-        }
-      });
-
-      // Logic: xử lý nghiệp vụ chính
       channel.consume(emailQueue, async (msg) => {
         if (!msg) return;
+
         try {
           const data = JSON.parse(msg.content.toString());
-          // TODO: xử lý logic ở đây
-          await sendEmail(data);
+
+          // Kiểm tra TTL hoặc delay nếu có
+          if (
+            msg.properties.expiration ||
+            msg.properties.headers?.["x-delay"]
+          ) {
+            console.log("[TTL] Message email delay/expired:", data);
+          }
+
+          // Xử lý logic gửi email
+          const result = await sendEmail(data);
+          console.log("result", result);
+
           channel.ack(msg);
         } catch (error) {
           console.error("Error in message logic:", error);
@@ -33,7 +36,6 @@ const emailService = {
       console.error("Error in consumerToQueueNormal:", error);
     }
   },
-
   consumerToQueueFailed: async () => {
     try {
       const { channel } = await connectRabbitMQ();
@@ -72,5 +74,4 @@ const emailService = {
     }
   },
 };
-
-export default emailService;
+export { emailConsumer };

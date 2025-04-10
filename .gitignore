@@ -1,2 +1,9 @@
+# Bỏ qua file môi trường (chứa biến nhạy cảm như JWT, DB password)
 .env
-node_modules
+
+# Bỏ qua thư viện đã cài (tự cài lại bằng package.json)
+node_modules/
+
+# Bỏ qua file cấu hình riêng tư
+/src/configs/firebase-key.json
+

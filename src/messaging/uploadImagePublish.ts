@@ -1,11 +1,11 @@
 "use strict";
 
-import { connectRabbitMQ } from "databases/init.rabbitmq";
-import { SendEmailOptions } from "services/email.service";
+import { connectRabbitMQ } from "../databases/init.rabbitmq";
 
-interface UploadImageOptions {
-  type: "avatar" | "coverPhoto";
-  image: Express.Multer.File;
+export interface UploadImageOptions {
+  folder: "avatar" | "coverPhoto" | "post";
+  fileName: string;
+  image: Buffer;
 }
 const uploadImagePublish = async (data: UploadImageOptions) => {
   try {
@@ -36,7 +36,7 @@ const uploadImagePublish = async (data: UploadImageOptions) => {
     );
 
     // 4. Send message
-    console.log("Publishing:", data);
+    console.log("Publishing upload image to queue:", data);
 
     await channel.sendToQueue(
       queueResult.queue,
@@ -48,10 +48,9 @@ const uploadImagePublish = async (data: UploadImageOptions) => {
 
     setTimeout(() => {
       channel.close();
-      process.exit(0);
     }, 500);
   } catch (error) {
-    console.error("Producer error:", error);
+    console.error("Producer upload image error:", error);
     throw error;
   }
 };

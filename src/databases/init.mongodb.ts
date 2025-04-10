@@ -1,8 +1,8 @@
 "use strict";
 import mongoose from "mongoose";
-import dotenv from "dotenv";
-dotenv.config();
-const connectString = process.env.MONGODB_URI || "";
+import config from "../configs/config";
+const connectString = config.mongoURI;
+
 class Database {
   private static instance: Database;
   constructor() {

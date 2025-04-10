@@ -1,7 +1,7 @@
-import asyncHandle from "helpers/asyncHandle";
+import asyncHandle from "../helpers/asyncHandle";
 import { Request, Response } from "express";
-import { AuthService } from "services/auth.service";
-import { OK, CREATED } from "middlewares/success.response";
+import { AuthService } from "../services/auth.service";
+import { OK, CREATED } from "../middlewares/success.response";
 
 const service = new AuthService();
 

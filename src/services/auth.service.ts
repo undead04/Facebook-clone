@@ -10,9 +10,9 @@ import {
   getInfoData,
   verifyToken,
 } from "../utils";
-import redisClient from "databases/init.redis";
-import emailPublish from "messaging/emailPublish";
-import { generateVerifyEmailTemplate } from "utils/templates/verifyEmailTemplate";
+import redisClient from "../databases/init.redis";
+import emailPublish from "../messaging/emailPublish";
+import { generateVerifyEmailTemplate } from "../utils/templates/verifyEmailTemplate";
 
 export class AuthService {
   // register
@@ -52,7 +52,7 @@ export class AuthService {
     return "Register successfully";
   };
   login = async ({ email, password }: LoginInput) => {
-    const user = await userModel.findOne({ email, password }).lean();
+    const user = await userModel.findOne({ email }).lean();
     if (!user) {
       throw new BadRequestError("User not found");
     }
@@ -61,6 +61,10 @@ export class AuthService {
     const isPasswordCorrect = await comparePassword(password, user.password);
     if (!isPasswordCorrect) {
       throw new BadRequestError("Password is incorrect");
+    }
+
+    if (user.isVerified === false) {
+      throw new BadRequestError("User not verified");
     }
 
     // generate token
@@ -104,12 +108,15 @@ export class AuthService {
   refreshToken = async (refreshToken: string) => {
     const user = await userModel.findOne({ refreshToken });
     if (!user) {
-      throw new BadRequestError("User not found");
+      throw new BadRequestError("Refresh token is invalid");
     }
 
     const decoded = await verifyToken(refreshToken);
 
-    if (user._id.toString() !== decoded.id) {
+    console.log("user", user);
+    console.log("decoded", decoded);
+
+    if (user._id.toString() !== decoded._id) {
       throw new BadRequestError("User not found");
     }
 
@@ -126,6 +133,9 @@ export class AuthService {
     const user = await userModel.findOne({ email }).lean();
     if (!user) {
       throw new BadRequestError("User not found");
+    }
+    if (user.isVerified) {
+      throw new BadRequestError("User already verified");
     }
 
     const otp = generateOTP();
@@ -147,6 +157,9 @@ export class AuthService {
     const user = await userModel.findOne({ email }).lean();
     if (!user) {
       throw new BadRequestError("User not found");
+    }
+    if (user.isVerified) {
+      throw new BadRequestError("User already verified");
     }
 
     const otpFromRedis = await this.getOPTRedis(email);

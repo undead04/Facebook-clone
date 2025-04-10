@@ -1,8 +1,11 @@
-import { BadRequestError } from "middlewares/error.response";
-import userModel from "models/user.model";
-import { changePasswordInput, updateUserInput } from "validations/user/index";
-import uploadImagePublish from "messaging/uploadImagePublish";
-import { comparePassword, hashPassword } from "utils";
+import { BadRequestError } from "../middlewares/error.response";
+import userModel from "../models/user.model";
+import {
+  changePasswordInput,
+  updateUserInput,
+} from "../validations/user/index";
+import uploadImagePublish from "../messaging/uploadImagePublish";
+import { comparePassword, hashPassword } from "../utils";
 export class UserService {
   getMe = async (userId: string) => {
     const user = await userModel.findById(userId).lean();
@@ -30,9 +33,11 @@ export class UserService {
       throw new BadRequestError("User not found");
     }
     if (avatar) {
+      const buffer = await avatar.buffer;
       await uploadImagePublish({
-        type: "avatar",
-        image: avatar,
+        folder: "avatar",
+        fileName: avatar.originalname,
+        image: buffer,
       });
     }
     await user.save();
@@ -47,9 +52,11 @@ export class UserService {
       throw new BadRequestError("User not found");
     }
     if (coverPhoto) {
+      const buffer = await coverPhoto.buffer;
       await uploadImagePublish({
-        type: "coverPhoto",
-        image: coverPhoto,
+        folder: "coverPhoto",
+        fileName: coverPhoto.originalname,
+        image: buffer,
       });
     }
     await user.save();

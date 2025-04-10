@@ -1,9 +1,9 @@
 import Redis from "ioredis";
-
+import config from "../configs/config";
 const redisClient = new Redis({
-  host: process.env.REDIS_HOST,
-  port: Number(process.env.REDIS_PORT),
-  password: process.env.REDIS_PASSWORD,
+  host: config.redisHost,
+  port: config.redisPort,
+  password: config.redisPassword,
 });
 
 redisClient.ping(function (err, result) {

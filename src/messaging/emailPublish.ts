@@ -1,7 +1,6 @@
 "use strict";
-import amqp from "amqplib";
-import { connectRabbitMQ } from "databases/init.rabbitmq";
-import { SendEmailOptions } from "services/email.service";
+import { connectRabbitMQ } from "../databases/init.rabbitmq";
+import { SendEmailOptions } from "../services/email.service";
 
 const emailPublish = async (data: SendEmailOptions) => {
   try {
@@ -28,7 +27,7 @@ const emailPublish = async (data: SendEmailOptions) => {
     await channel.bindQueue(queueResult.queue, emailExchange, emailExchangeDLX);
 
     // 4. Send message
-    console.log("Publishing:", data);
+    console.log("Publishing email to queue:", data);
 
     await channel.sendToQueue(
       queueResult.queue,
@@ -40,10 +39,9 @@ const emailPublish = async (data: SendEmailOptions) => {
 
     setTimeout(() => {
       channel.close();
-      process.exit(0);
     }, 500);
   } catch (error) {
-    console.error("Producer error:", error);
+    console.error("Producer email error:", error);
     throw error;
   }
 };

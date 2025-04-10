@@ -21,73 +21,82 @@ export const ReasonStatusCode = {
 class ErrorResponse extends Error {
   statusCode: number;
   reasonStatusCode: string;
+  errors: any;
   constructor(
     message: string,
+    errors: any = null,
     statusCode = StatusCode.INTERNAL_SERVER_ERROR,
     reasonStatusCode = ReasonStatusCode.INTERNAL_SERVER_ERROR
   ) {
     super(message);
     this.statusCode = statusCode;
     this.reasonStatusCode = reasonStatusCode;
+    this.errors = errors;
   }
 }
 
 class ConflictRequestError extends ErrorResponse {
   constructor(
     message: string,
+    errors: any = null,
     statusCode = StatusCode.CONFLICT,
     reasonStatusCode = ReasonStatusCode.CONFLICT
   ) {
-    super(message, statusCode, reasonStatusCode);
+    super(message, errors, statusCode, reasonStatusCode);
   }
 }
 
 class BadRequestError extends ErrorResponse {
   constructor(
     message: string,
-    statusCode = StatusCode.FORBIDDEN,
-    reasonStatusCode = ReasonStatusCode.FORBIDDEN
+    errors: any = null,
+    statusCode = StatusCode.BAD_REQUEST,
+    reasonStatusCode = ReasonStatusCode.BAD_REQUEST
   ) {
-    super(message, statusCode, reasonStatusCode);
+    super(message, errors, statusCode, reasonStatusCode);
   }
 }
 
 class NotFoundError extends ErrorResponse {
   constructor(
     message: string,
+    errors: any = null,
     statusCode = StatusCode.NOT_FOUND,
     reasonStatusCode = ReasonStatusCode.NOT_FOUND
   ) {
-    super(message, statusCode, reasonStatusCode);
+    super(message, errors, statusCode, reasonStatusCode);
   }
 }
 
 class UnauthorizedError extends ErrorResponse {
   constructor(
     message: string,
+    errors: any = null,
     statusCode = StatusCode.UNAUTHORIZED,
     reasonStatusCode = ReasonStatusCode.UNAUTHORIZED
   ) {
-    super(message, statusCode, reasonStatusCode);
+    super(message, errors, statusCode, reasonStatusCode);
   }
 }
 
 class InternalServerError extends ErrorResponse {
   constructor(
     message: string,
+    errors: any = null,
     statusCode = StatusCode.INTERNAL_SERVER_ERROR,
     reasonStatusCode = ReasonStatusCode.INTERNAL_SERVER_ERROR
   ) {
-    super(message, statusCode, reasonStatusCode);
+    super(message, errors, statusCode, reasonStatusCode);
   }
 }
 class ForbiddenError extends ErrorResponse {
   constructor(
     message: string,
+    errors: any = null,
     statusCode = StatusCode.FORBIDDEN,
     reasonStatusCode = ReasonStatusCode.FORBIDDEN
   ) {
-    super(message, statusCode, reasonStatusCode);
+    super(message, errors, statusCode, reasonStatusCode);
   }
 }
 export {

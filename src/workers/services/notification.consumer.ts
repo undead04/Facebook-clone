@@ -1,0 +1,97 @@
+"use strict";
+import notificationModel from "../../models/notification.model";
+import { connectRabbitMQ } from "../../databases/init.rabbitmq";
+import { BadRequestError } from "../../middlewares/error.response";
+import userModel from "../../models/user.model";
+import { NotificationOptions } from "../../messaging/notifcationPublish";
+export const notificationConsumer = {
+  consumerToQueueNormal: async () => {
+    try {
+      const { channel } = await connectRabbitMQ();
+      const notificationQueue = "notificationQueue";
+
+      // TTL: xử lý thông báo hết hạn hoặc cần delay
+      channel.consume(notificationQueue, (msg) => {
+        if (msg) {
+          console.log("[TTL] Message:", msg.content.toString());
+          channel.ack(msg);
+        }
+      });
+
+      // Logic: xử lý nghiệp vụ chính
+      channel.consume(notificationQueue, async (msg) => {
+        if (!msg) return;
+        try {
+          const data: NotificationOptions = JSON.parse(msg.content.toString());
+
+          // TODO: xử lý logic ở đây
+          const { senderId, receiverId, type, content } = data;
+          const sender = await userModel.findById(senderId).lean();
+          const receiver = await userModel.findById(receiverId).lean();
+
+          if (!sender || !receiver) {
+            throw new BadRequestError("Sender or receiver not found");
+          }
+
+          await notificationModel.create({
+            senderId,
+            receiverId,
+            type,
+            content,
+          });
+          console.log("Notification created successfully");
+
+          channel.ack(msg);
+        } catch (error) {
+          console.error("Error in message logic:", error);
+          channel.nack(msg, false, false); // từ chối xử lý, không requeue
+          throw error;
+        }
+      });
+    } catch (error) {
+      console.error("Error in consumerToQueueNormal notification: ", error);
+      throw error;
+    }
+  },
+
+  consumerToQueueFailed: async () => {
+    try {
+      const { channel } = await connectRabbitMQ();
+
+      const notificationExchangeDLX = "notification-exDLX";
+      const notificationRoutingkeyDLX = "notification-routingkey-DLX";
+      const notificationQueueHandler = "notificationQueueHandler";
+
+      await channel.assertExchange(notificationExchangeDLX, "direct", {
+        durable: true,
+      });
+
+      const queueResult = await channel.assertQueue(notificationQueueHandler, {
+        exclusive: false,
+      });
+
+      await channel.bindQueue(
+        queueResult.queue,
+        notificationExchangeDLX,
+        notificationRoutingkeyDLX
+      );
+
+      await channel.consume(
+        queueResult.queue,
+        (msg) => {
+          if (msg) {
+            console.log(
+              "[FAILED] Message notification:",
+              msg.content.toString()
+            );
+            channel.ack(msg);
+          }
+        },
+        { noAck: false }
+      );
+    } catch (error) {
+      console.error("Error in consumerToQueueFailed notification: ", error);
+      throw error;
+    }
+  },
+};

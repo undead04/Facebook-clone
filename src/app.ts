@@ -20,7 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
 //init db
-instanceMongodb.connect();
+instanceMongodb;
 
 // init route
 app.use("/", router);
@@ -43,6 +43,7 @@ app.use((error: any, req: Request, res: Response, next: NextFunction) => {
     code: statusCode,
     stack: error.stack,
     message: error.message || "Internal Server Error",
+    errors: error.errors || null,
   });
 });
 

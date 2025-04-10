@@ -1,13 +1,15 @@
-import dotenv from "dotenv";
-import { BadRequestError, UnauthorizedError } from "middlewares/error.response";
-import userModel from "models/user.model";
-("use strict");
-const _ = require("lodash");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-dotenv.config();
-
-const JWT_SECRET = process.env.JWT_SECRET || "";
+"use strict";
+import {
+  BadRequestError,
+  UnauthorizedError,
+} from "../middlewares/error.response";
+import userModel from "../models/user.model";
+import config from "../configs/config";
+import jwt, { JwtPayload } from "jsonwebtoken";
+import bcrypt from "bcrypt";
+import _ from "lodash";
+import ms from "ms";
+const JWT_SECRET = config.jwtSecret;
 
 const getInfoData = (fileds: string[], data: any) => _.pick(data, fileds);
 
@@ -33,38 +35,44 @@ const generateOTP = (): string => {
 
 const createAccessToken = (userId: string) => {
   return jwt.sign({ _id: userId }, JWT_SECRET, {
-    expiresIn: "15m",
+    expiresIn: config.jwtExpiration as ms.StringValue,
   });
 };
 
 const createRefreshToken = (userId: string) => {
   return jwt.sign({ _id: userId }, JWT_SECRET, {
-    expiresIn: "1h",
+    expiresIn: config.jwtRefreshTokenExpiration as ms.StringValue,
   });
 };
 
-const verifyToken = async (token: string) => {
-  const decoded = jwt.verify(
-    token,
-    JWT_SECRET,
-    async (err: any, decoded: any) => {
-      if (err instanceof jwt.JsonWebTokenError) {
-        throw new BadRequestError("Invalid token");
-      }
+const parseBoolean = (value: string | boolean) => {
+  if (typeof value === "boolean") return value;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return false;
+};
 
+const verifyToken = async (token: string): Promise<JwtPayload> => {
+  return new Promise((resolve, reject) => {
+    jwt.verify(token, JWT_SECRET, async (err, decoded) => {
       if (err instanceof jwt.TokenExpiredError) {
-        throw new UnauthorizedError("Token expired");
+        return reject(new UnauthorizedError("Token expired"));
       }
 
-      const user = await userModel.findById(decoded.id).lean();
+      if (err instanceof jwt.JsonWebTokenError) {
+        return reject(new BadRequestError("Invalid token"));
+      }
+
+      const payload = decoded as JwtPayload;
+      const user = await userModel.findById(payload._id).lean();
+
       if (!user) {
-        throw new UnauthorizedError("User not found");
+        return reject(new UnauthorizedError("User not found"));
       }
 
-      return decoded;
-    }
-  );
-  return decoded;
+      resolve(payload);
+    });
+  });
 };
 
 export {
@@ -77,4 +85,5 @@ export {
   createAccessToken,
   createRefreshToken,
   verifyToken,
+  parseBoolean,
 };

@@ -3,7 +3,9 @@ import { emailConsumer } from "./services/email.consumer";
 import { notificationConsumer } from "./services/notification.consumer";
 import { uploadConsumer } from "./services/upload.consumer";
 import { deleteImageConsumer } from "./services/deleteImage.consumer";
+import multer from "multer";
 const start = async () => {
+  await multer().any();
   instanceMongodb;
   console.log("Start worker");
   await emailConsumer.consumerToQueueNormal();

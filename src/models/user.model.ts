@@ -1,6 +1,7 @@
-import { model, Schema } from "mongoose";
+import { model, Schema, Types, Document } from "mongoose";
 
-export interface IUser {
+export interface IUser extends Document {
+  _id: Types.ObjectId;
   email: string;
   password: string;
   isVerified: boolean;

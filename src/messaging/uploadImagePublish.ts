@@ -1,12 +1,12 @@
 "use strict";
 
+import { UploadType } from "services/upload/interface/IUploadStrategy";
 import { connectRabbitMQ } from "../databases/init.rabbitmq";
 
 export interface UploadImageOptions {
-  folder: "avatar" | "coverPhoto" | "post";
-  fileName: string;
-  image: Buffer;
-  userId: string;
+  type: UploadType;
+  files: Express.Multer.File[];
+  id: string;
 }
 const uploadImagePublish = async (data: UploadImageOptions) => {
   try {

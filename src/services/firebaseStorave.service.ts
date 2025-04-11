@@ -1,7 +1,6 @@
 import { initializeApp, cert, ServiceAccount } from "firebase-admin/app";
 import { getStorage } from "firebase-admin/storage";
 import config from "../configs/config";
-import { getFilePathFromUrl } from "../utils";
 // Đường dẫn tới file key JSON của Firebase
 const serviceAccount =
   require("../configs/firebase-key.json") as ServiceAccount;

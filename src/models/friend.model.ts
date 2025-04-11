@@ -1,6 +1,7 @@
 import { Schema, model, Types } from "mongoose";
 
 export interface IFriend extends Document {
+  _id: Types.ObjectId;
   userId: Types.ObjectId;
   friendId: Types.ObjectId;
   status: string;

@@ -7,6 +7,7 @@ import {
 import uploadImagePublish from "../messaging/uploadImagePublish";
 import { comparePassword, getInfoData, hashPassword } from "../utils";
 import deleteImagePublish from "../messaging/deleteImagePublish";
+import { UploadType } from "./upload/interface/IUploadStrategy";
 export class UserService {
   getMe = async (userId: string) => {
     const user = await userModel.findById(userId).select(["-password", "-__v"]);
@@ -33,12 +34,10 @@ export class UserService {
       throw new BadRequestError("User not found");
     }
     if (avatar) {
-      const buffer = await avatar.buffer;
       await uploadImagePublish({
-        folder: "avatar",
-        fileName: avatar.originalname,
-        image: buffer,
-        userId,
+        type: UploadType.AVATAR,
+        files: [avatar],
+        id: userId,
       });
     }
   };
@@ -51,12 +50,10 @@ export class UserService {
       throw new BadRequestError("User not found");
     }
     if (coverPhoto) {
-      const buffer = await coverPhoto.buffer;
       await uploadImagePublish({
-        folder: "coverPhoto",
-        fileName: coverPhoto.originalname,
-        image: buffer,
-        userId,
+        type: UploadType.COVER,
+        files: [coverPhoto],
+        id: userId,
       });
     }
   };

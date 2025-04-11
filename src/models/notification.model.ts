@@ -1,5 +1,6 @@
 import { Schema, Document, model, Types } from "mongoose";
 export interface INotification extends Document {
+  _id: Types.ObjectId;
   senderId: Types.ObjectId;
   receiverId: Types.ObjectId;
   type: string;

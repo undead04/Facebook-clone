@@ -8,9 +8,14 @@ const start = async () => {
   console.log("Start worker");
   await emailConsumer.consumerToQueueNormal();
   await emailConsumer.consumerToQueueFailed();
+
   await uploadConsumer.consumerToQueueNormal();
   await uploadConsumer.consumerToQueueFailed();
+
   await deleteImageConsumer.consumerToQueueNormal();
   await deleteImageConsumer.consumerToQueueFailed();
+
+  await notificationConsumer.consumerToQueueNormal();
+  await notificationConsumer.consumerToQueueFailed();
 };
 start().catch((error) => console.error(`Rabbit MQ : ${error.message}`, error));

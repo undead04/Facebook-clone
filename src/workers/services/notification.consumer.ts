@@ -15,16 +15,11 @@ export const notificationConsumer = {
         if (!msg) return;
         console.log("[TTL] Message notification:", msg.content.toString());
         try {
+          if (!msg) return;
           const data: NotificationOptions = JSON.parse(msg.content.toString());
 
           // TODO: xử lý logic ở đây
           const { senderId, receiverId, type, content } = data;
-          const sender = await userModel.findById(senderId).lean();
-          const receiver = await userModel.findById(receiverId).lean();
-
-          if (!sender || !receiver) {
-            throw new BadRequestError("Sender or receiver not found");
-          }
 
           await notificationModel.create({
             senderId,
@@ -32,6 +27,7 @@ export const notificationConsumer = {
             type,
             content,
           });
+
           console.log("Notification created successfully");
 
           channel.ack(msg);

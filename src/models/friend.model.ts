@@ -22,6 +22,7 @@ const friendSchema = new Schema(
     timestamps: true,
   }
 );
+friendSchema.index({ userId: 1, friendId: 1 }, { unique: true }); // Không cho trùng cặp bạn bè
 
 const friendModel = model<IFriend>("Friend", friendSchema);
 

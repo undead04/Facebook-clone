@@ -10,9 +10,16 @@ export class FriendService {
     const user = await userModel.findById(userId).lean();
     const friendUser = await userModel.findById(friendId).lean();
 
+    // check verify friendUser
+    if (friendUser?.isVerified === false) {
+      throw new BadRequestError("Friend user is not verified");
+    }
+
+    // check if user and friendUser exist
     if (!user || !friendUser) {
       throw new BadRequestError("User or friend not found");
     }
+
     // check if user and friend are already friends
     if (user._id.equals(friendUser._id)) {
       throw new BadRequestError("You cannot add yourself as a friend");
@@ -34,7 +41,11 @@ export class FriendService {
     // if friend already exists, update the status to pending
     if (friend) {
       // check if friend status unfriended
-      if (friend.status === "unfriended") {
+      if (
+        friend.status === "unfriended" ||
+        friend.status === "cancelled" ||
+        friend.status === "rejected"
+      ) {
         friend.status = "pending";
         await friend.save();
         return friend;
@@ -55,12 +66,19 @@ export class FriendService {
   async acceptFriend(data: FriendInput) {
     const { friendId, userId } = data;
     const friend = await friendModel.findById(friendId);
-    const user = await userModel.findById(userId).lean();
     // check if friend exists
-    if (!friend || !user) {
+    if (!friend) {
       throw new BadRequestError("Friend request not found");
     }
 
+    // check if friend user is  exist
+    const friendUser = await userModel.findById(friend.friendId);
+    const user = await userModel.findById(friend.userId);
+    if (!friendUser || !user) {
+      throw new BadRequestError("Friend user or user not found");
+    }
+
+    // check if friend user is not the same as the user
     if (!friend.friendId.equals(userId)) {
       throw new BadRequestError("You cannot accept this friend request");
     }
@@ -72,15 +90,18 @@ export class FriendService {
 
     friend.status = "accepted";
     await friend.save();
+    user.profile.friendsCount++;
+    await user.save();
+    friendUser.profile.friendsCount++;
+    await friendUser.save();
     return friend;
   }
 
   async rejectFriend(data: FriendInput) {
     const { friendId, userId } = data;
     const friend = await friendModel.findById(friendId);
-    const user = await userModel.findById(userId).lean();
     // check if friend exists
-    if (!friend || !user) {
+    if (!friend) {
       throw new BadRequestError("Friend request not found");
     }
 
@@ -100,9 +121,9 @@ export class FriendService {
   async cancelFriend(data: FriendInput) {
     const { friendId, userId } = data;
     const friend = await friendModel.findById(friendId);
-    const user = await userModel.findById(userId).lean();
+
     // check if friend exists
-    if (!friend || !user) {
+    if (!friend) {
       throw new BadRequestError("Friend request not found");
     }
 
@@ -122,15 +143,25 @@ export class FriendService {
 
   async unfriend(data: FriendInput) {
     const { friendId, userId } = data;
-    const friend = await friendModel.findById(friendId);
-    const user = await userModel.findById(userId).lean();
+    const friend = await friendModel.findOne({
+      $or: [
+        { userId: userId, friendId: friendId },
+        { userId: friendId, friendId: userId },
+      ],
+    });
+
     // check if friend exists
-    if (!friend || !user) {
+    if (!friend) {
       throw new BadRequestError("Friend request not found");
     }
-    if (!friend.friendId.equals(userId) && !friend.userId.equals(userId)) {
-      throw new BadRequestError("You are not friends with this user");
+
+    const friendUser = await userModel.findById(friend.friendId);
+    const user = await userModel.findById(friend.userId);
+
+    if (!friendUser || !user) {
+      throw new BadRequestError("Friend user or user not found");
     }
+
     // check if friend status accepted
     if (friend.status !== "accepted") {
       throw new BadRequestError("Friend request not found");
@@ -138,13 +169,24 @@ export class FriendService {
 
     friend.status = "unfriended";
     await friend.save();
+
+    user.profile.friendsCount--;
+    await user.save();
+
+    friendUser.profile.friendsCount--;
+    await friendUser.save();
     return friend;
   }
 
   async getFriends(userId: string, page: number, limit: number) {
     const skip = (page - 1) * limit;
     const friends = await friendModel
-      .find({ userId, status: "accepted" })
+      .find({
+        $or: [
+          { userId, status: "accepted" },
+          { friendId: userId, status: "accepted" },
+        ],
+      })
       .skip(skip)
       .limit(limit)
       .lean();
@@ -154,7 +196,12 @@ export class FriendService {
   async getFriendRequests(userId: string, page: number, limit: number) {
     const skip = (page - 1) * limit;
     const friendRequests = await friendModel
-      .find({ friendId: userId, status: "pending" })
+      .find({
+        $or: [
+          { userId, status: "pending" },
+          { friendId: userId, status: "pending" },
+        ],
+      })
       .skip(skip)
       .limit(limit)
       .lean();
@@ -168,7 +215,12 @@ export class FriendService {
   ) {
     const skip = (page - 1) * limit;
     const friends = await friendModel
-      .find({ userId, status: "accepted" })
+      .find({
+        $or: [
+          { userId, status: "accepted" },
+          { friendId: userId, status: "accepted" },
+        ],
+      })
       .populate({
         path: "friendId",
         match: { $text: { $search: name } },

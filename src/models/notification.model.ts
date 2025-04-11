@@ -1,7 +1,7 @@
 import { Schema, Document, model, Types } from "mongoose";
 export interface INotification extends Document {
   senderId: Types.ObjectId;
-  recevieId: Types.ObjectId;
+  receiverId: Types.ObjectId;
   type: string;
   content: string;
   createAt: Date;
@@ -11,7 +11,7 @@ export interface INotification extends Document {
 const NotificationSchema = new Schema<INotification>(
   {
     senderId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    recevieId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    receiverId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     type: {
       type: String,
       enum: ["friend", "like", "comment", "post"],

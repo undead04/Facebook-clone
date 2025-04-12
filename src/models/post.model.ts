@@ -31,6 +31,8 @@ const postSchema = new Schema<IPost>(
   { timestamps: true }
 );
 
+postSchema.index({ userId: 1 });
+
 const postModel = model<IPost>("Post", postSchema);
 
 export default postModel;

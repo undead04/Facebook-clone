@@ -2,12 +2,12 @@ import notificationModel from "../models/notification.model";
 export class NotificationService {
   async getNotifications(userId: string) {
     const notifications = await notificationModel
-      .find({ recevieId: userId })
-      .populate("senderId")
+      .find({ receiverId: userId })
       .sort({ createdAt: -1 })
       .lean();
     return notifications;
   }
+
   async getNotificationById(notificationId: string) {
     const notification = await notificationModel
       .findById(notificationId)
@@ -15,7 +15,8 @@ export class NotificationService {
       .lean();
     return notification;
   }
-  async updateNotification(notificationId: string) {
+
+  async readNotification(notificationId: string) {
     const notification = await notificationModel.findByIdAndUpdate(
       notificationId,
       { $set: { isRead: true } },
@@ -23,6 +24,7 @@ export class NotificationService {
     );
     return notification;
   }
+
   async deleteNotification(notificationId: string) {
     const notification = await notificationModel.findByIdAndDelete(
       notificationId

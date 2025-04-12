@@ -1,7 +1,7 @@
 "use strict";
 import { Schema, model, Types, Document } from "mongoose";
 export interface IComment extends Document {
-  comment_productId: Types.ObjectId;
+  comment_postId: Types.ObjectId;
   comment_userId: Types.ObjectId;
   comment_content: string;
   comment_left: number;
@@ -13,7 +13,7 @@ const DOCUMENT_NAME = "Comment";
 const COLLECTION_NAME = "Comments";
 const commentSchema = new Schema<IComment>(
   {
-    comment_productId: { type: Schema.Types.ObjectId, required: true },
+    comment_postId: { type: Schema.Types.ObjectId, required: true },
     comment_userId: { type: Schema.Types.ObjectId, required: true },
     comment_content: { type: String, required: true },
     comment_left: { type: Number, default: 0 },

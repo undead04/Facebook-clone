@@ -7,7 +7,7 @@ import {
   verifyEmail,
   sendVerifyEmail,
 } from "../../controllers/auth.controller";
-import authMiddleware from "../../middlewares/auth.middlware";
+import authMiddleware from "../../middlewares/auth.middleware";
 import { validateBody } from "../../middlewares/validate.middleware";
 import {
   RegisterInput,

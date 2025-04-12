@@ -9,6 +9,7 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import _ from "lodash";
 import ms from "ms";
+import crypto from "crypto";
 const JWT_SECRET = config.jwtSecret;
 
 const getInfoData = (fileds: string[], data: any) => _.pick(data, fileds);
@@ -80,6 +81,11 @@ const getFilePathFromUrl = (url: string): string | null => {
   return match ? match[1] : null;
 };
 
+const stringToBitIndex = (userId: string): number => {
+  const hash = crypto.createHash("md5").update(userId).digest("hex");
+  return parseInt(hash.slice(0, 8), 16); // lấy 32-bit integer
+};
+
 export {
   getFilePathFromUrl,
   getInfoData,
@@ -92,4 +98,5 @@ export {
   createRefreshToken,
   verifyToken,
   parseBoolean,
+  stringToBitIndex,
 };

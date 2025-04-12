@@ -25,7 +25,7 @@ const NotificationSchema = new Schema<INotification>(
     timestamps: true,
   }
 );
-
+NotificationSchema.index({ senderId: 1, receiverId: 1 });
 const notificationModel = model<INotification>(
   "Notification",
   NotificationSchema

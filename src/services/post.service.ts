@@ -36,7 +36,7 @@ export class PostService {
     return "Create post successfully";
   }
   async getPosts(
-    activeUserId: Types.ObjectId,
+    activeUserId: string,
     page: number,
     limit: number,
     userId: string
@@ -59,7 +59,7 @@ export class PostService {
 
     // 2. Tính quyền xem bài viết
     let visibilityFilter: any = {};
-    if (activeUserId.toString() === userId) {
+    if (activeUserId.toString() === userId.toString()) {
       // Là chính mình => xem tất cả
       visibilityFilter = {};
     } else if (userFriend && userFriend.status === "accepted") {
@@ -99,7 +99,7 @@ export class PostService {
     return posts;
   }
 
-  async getPostById(activeUserId: Types.ObjectId, postId: string) {
+  async getPostById(activeUserId: string, postId: string) {
     // 1. Lấy thông tin người đăng bài và người đang xem
     const post = await postModel.findById(postId);
     if (!post) throw new NotFoundError("Post not found");

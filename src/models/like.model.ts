@@ -14,7 +14,7 @@ const likeSchema = new Schema<ILike>(
   },
   { timestamps: true }
 );
-
+likeSchema.index({ userId: 1, postId: 1 });
 const likeModel = model<ILike>("Like", likeSchema);
 
 export default likeModel;

@@ -10,8 +10,8 @@ import {
   updateMe,
 } from "../../controllers/user.controller";
 import { Router } from "express";
-import authMiddleware from "../../middlewares/auth.middlware";
-import upload from "../../middlewares/multer.middlware";
+import authMiddleware from "../../middlewares/auth.middleware";
+import upload from "../../middlewares/multer.middleware";
 import { validateBody } from "../../middlewares/validate.middleware";
 import {
   updateUserInput,

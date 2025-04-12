@@ -6,7 +6,9 @@ import morgan from "morgan";
 import instanceMongodb from "./databases/init.mongodb";
 import router from "./routes";
 import { ReasonStatusCode, StatusCode } from "./middlewares/error.response";
+
 const app = express();
+
 // init middleware
 app.use(helmet());
 app.use(morgan("dev"));

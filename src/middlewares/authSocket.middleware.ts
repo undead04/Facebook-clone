@@ -1,27 +1,19 @@
 import { NextFunction, Request, Response } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import User from "../models/user.model";
-import {
-  UnauthorizedError,
-  ForbiddenError,
-} from "../middlewares/error.response";
-
+import { UnauthorizedError, ForbiddenError } from "./error.response";
+import { Socket } from "socket.io";
 const jwt_secret = process.env.JWT_SECRET || "";
 
-const authMiddleware = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+const authSocketMiddleware = async (socket: Socket, next: NextFunction) => {
   try {
-    const authHeader = req.headers["authorization"];
-    const token = authHeader?.split(" ")[1];
+    const { token } = socket.handshake.headers;
 
     if (!token) {
       throw new UnauthorizedError("Token is missing");
     }
 
-    const decoded = jwt.verify(token, jwt_secret) as JwtPayload;
+    const decoded = jwt.verify(token as string, jwt_secret) as JwtPayload;
 
     const user = await User.findById(decoded._id || decoded.id).lean(); // Tùy bạn encode token kiểu nào
     if (!user) {
@@ -37,7 +29,7 @@ const authMiddleware = async (
     }
 
     // Attach user info vào request để sử dụng sau
-    (req as any).user = user;
+    (socket as any).user = user;
 
     return next();
   } catch (err) {
@@ -53,4 +45,4 @@ const authMiddleware = async (
   }
 };
 
-export default authMiddleware;
+export default authSocketMiddleware;

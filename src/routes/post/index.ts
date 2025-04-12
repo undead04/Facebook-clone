@@ -1,5 +1,5 @@
 import { Router } from "express";
-import authMiddleware from "../../middlewares/auth.middlware";
+import authMiddleware from "../../middlewares/auth.middleware";
 import {
   createPost,
   getPostsMe,
@@ -14,7 +14,7 @@ import {
   PostInput,
   UpdateStatusPostInput,
 } from "../../validations/post/PostInput";
-import upload from "../../middlewares/multer.middlware";
+import upload from "../../middlewares/multer.middleware";
 const router = Router();
 router.use(authMiddleware);
 

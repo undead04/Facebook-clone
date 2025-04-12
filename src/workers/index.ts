@@ -14,10 +14,10 @@ const start = async () => {
   await uploadConsumer.consumerToQueueNormal();
   await uploadConsumer.consumerToQueueFailed();
 
-  await deleteImageConsumer.consumerToQueueNormal();
-  await deleteImageConsumer.consumerToQueueFailed();
-
   await notificationConsumer.consumerToQueueNormal();
   await notificationConsumer.consumerToQueueFailed();
+
+  await deleteImageConsumer.consumerToQueueNormal();
+  await deleteImageConsumer.consumerToQueueFailed();
 };
 start().catch((error) => console.error(`Rabbit MQ : ${error.message}`, error));

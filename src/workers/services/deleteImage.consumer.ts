@@ -5,11 +5,20 @@ import FirebaseStorageService from "../../services/firebaseStorave.service";
 import { deleteImageOtions } from "../../messaging/deleteImagePublish";
 const deleteImageConsumer = {
   consumerToQueueNormal: async () => {
+    const deleteImageQueue = "deleteImageQueue";
+    const deleteImageExchangeDLX = "deleteImage-exDLX";
+    const deleteImageRoutingkeyDLX = "deleteImage-routingkey-DLX";
     try {
       const { channel } = await connectRabbitMQ();
-      const deleteImageQueue = "deleteImageQueue";
+      // 2. Create queue with DLX support
+      await channel.assertQueue(deleteImageQueue, {
+        durable: true,
+        exclusive: false,
+        deadLetterExchange: deleteImageExchangeDLX,
+        deadLetterRoutingKey: deleteImageRoutingkeyDLX,
+      });
 
-      channel.consume(deleteImageQueue, async (msg) => {
+      await channel.consume(deleteImageQueue, async (msg) => {
         if (!msg) return;
 
         try {
@@ -31,6 +40,7 @@ const deleteImageConsumer = {
           channel.nack(msg, false, false); // từ chối xử lý, không requeue
         }
       });
+      console.log(`Consumer started for queue: ${deleteImageQueue}`);
     } catch (error) {
       console.error("Error in consumerToQueueNormal:", error);
     }

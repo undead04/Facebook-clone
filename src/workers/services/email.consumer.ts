@@ -4,11 +4,22 @@ import { connectRabbitMQ } from "../../databases/init.rabbitmq";
 
 const emailConsumer = {
   consumerToQueueNormal: async () => {
+    const emailQueue = "emailQueue";
+    const emailExchangeDLX = "email-exDLX";
+    const emailRoutingkeyDLX = "email-routingkey-DLX";
+
     try {
       const { channel } = await connectRabbitMQ();
-      const emailQueue = "emailQueue";
 
-      channel.consume(emailQueue, async (msg) => {
+      // 2. Create queue with DLX support
+      await channel.assertQueue(emailQueue, {
+        durable: true,
+        exclusive: false,
+        deadLetterExchange: emailExchangeDLX,
+        deadLetterRoutingKey: emailRoutingkeyDLX,
+      });
+
+      await channel.consume(emailQueue, async (msg) => {
         if (!msg) return;
 
         try {
@@ -33,7 +44,13 @@ const emailConsumer = {
         }
       });
     } catch (error) {
-      console.error("Error in consumerToQueueNormal:", error);
+      if (error instanceof Error && "code" in error && error.code === 404) {
+        console.warn(
+          `[!] Queue "${emailQueue}" does not exist. Skipping consumer.`
+        );
+      } else {
+        console.error("Error checking queue:", error);
+      }
     }
   },
   consumerToQueueFailed: async () => {
@@ -68,6 +85,7 @@ const emailConsumer = {
         },
         { noAck: false }
       );
+      console.log(`Consumer started for queue: ${emailQueueHandler}`);
     } catch (error) {
       console.error("Error in consumerToQueueFailed:", error);
       throw error;

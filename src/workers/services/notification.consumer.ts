@@ -1,45 +1,70 @@
 "use strict";
 import notificationModel from "../../models/notification.model";
 import { connectRabbitMQ } from "../../databases/init.rabbitmq";
-import { BadRequestError } from "../../middlewares/error.response";
-import userModel from "../../models/user.model";
 import { NotificationOptions } from "../../messaging/notifcationPublish";
+
 export const notificationConsumer = {
   consumerToQueueNormal: async () => {
+    const notificationQueue = "notificationQueue";
+    const notificationExchangeDLX = "notification-exDLX";
+    const notificationRoutingkeyDLX = "notification-routingkey-DLX";
     try {
       const { channel } = await connectRabbitMQ();
-      const notificationQueue = "notificationQueue";
 
-      // Logic: xử lý nghiệp vụ chính
-      channel.consume(notificationQueue, async (msg) => {
-        if (!msg) return;
-        console.log("[TTL] Message notification:", msg.content.toString());
-        try {
-          if (!msg) return;
-          const data: NotificationOptions = JSON.parse(msg.content.toString());
+      try {
+        // Sử dụng assertQueue với passive: true để kiểm tra queue tồn tại
+        // Nếu queue không tồn tại, nó sẽ throw error nhưng không tạo queue mới
+        // 2. Create queue with DLX support
+        await channel.assertQueue(notificationQueue, {
+          durable: true,
+          exclusive: false,
+          deadLetterExchange: notificationExchangeDLX,
+          deadLetterRoutingKey: notificationRoutingkeyDLX,
+        });
 
-          // TODO: xử lý logic ở đây
-          const { senderId, receiverId, type, content } = data;
+        // Nếu queue tồn tại, thiết lập consumer
+        await channel.consume(
+          notificationQueue,
+          async (msg) => {
+            if (!msg) return;
 
-          await notificationModel.create({
-            senderId,
-            receiverId,
-            type,
-            content,
-          });
+            try {
+              const data: NotificationOptions = JSON.parse(
+                msg.content.toString()
+              );
+              const { senderId, receiverId, type, content } = data;
 
-          console.log("Notification created successfully");
+              await notificationModel.create({
+                senderId,
+                receiverId,
+                type,
+                content,
+              });
 
-          channel.ack(msg);
-        } catch (error) {
-          console.error("Error in message logic:", error);
-          channel.nack(msg, false, false); // từ chối xử lý, không requeue
-          throw error;
+              console.log("Notification created successfully");
+              channel.ack(msg);
+            } catch (error) {
+              console.error("Error in message logic:", error);
+              channel.nack(msg, false, false);
+            }
+          },
+          { noAck: false }
+        );
+
+        console.log(`Consumer started for queue: ${notificationQueue}`);
+      } catch (error: any) {
+        if (error.code === 404) {
+          console.warn(
+            `Queue "${notificationQueue}" does not exist. Skipping consumer.`
+          );
+          return;
         }
-      });
+        console.warn("Error checking queue:", error);
+        return; // Không throw error nữa, chỉ return
+      }
     } catch (error) {
-      console.error("Error in consumerToQueueNormal notification: ", error);
-      throw error;
+      console.warn("Error in consumerToQueueNormal notification:", error);
+      return; // Không throw error nữa, chỉ return
     }
   },
 
@@ -79,8 +104,8 @@ export const notificationConsumer = {
         { noAck: false }
       );
     } catch (error) {
-      console.error("Error in consumerToQueueFailed notification: ", error);
-      throw error;
+      console.warn("Error in consumerToQueueFailed notification:", error);
+      return; // Không throw error nữa, chỉ return
     }
   },
 };

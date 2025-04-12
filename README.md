@@ -67,4 +67,5 @@ npm install
 # 4. Khởi động server
 npm run dev
 
-
+#5 Khởi động rabbitmq
+npm run worker

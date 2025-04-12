@@ -12,6 +12,7 @@ Một dự án **Facebook Clone** được xây dựng với các công nghệ h
 | **RabbitMQ** | Hàng đợi xử lý các tác vụ bất đồng bộ như gửi email, upload file,... |
 | **Redis** | - Lưu trữ OTP khi đăng ký/đặt lại mật khẩu.<br> - Dùng bitmap để xử lý chức năng like bài viết một cách hiệu quả. |
 | **Firebase Storage** | Dùng để upload và lưu trữ các tệp như ảnh đại diện, ảnh bài viết,... |
+| **Docker** | Dùng docker để tạo môi trường database mongodb,rabbitmq,redis |
 
 ## ⚙️ Các chức năng chính
 
@@ -67,5 +68,8 @@ npm install
 # 4. Khởi động server
 npm run dev
 
-#5 Khởi động rabbitmq
+#5 Khởi động service rabbitmq
 npm run worker
+#6 Tạo database
+docker-compose up -d
+#7 Sau đó thiết lập biến môi trường là ok

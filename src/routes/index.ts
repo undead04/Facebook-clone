@@ -6,6 +6,7 @@ import postRoutes from "./post/index";
 import likeRoutes from "./like/index";
 import commentRoutes from "./comment/index";
 import notificationRoutes from "./notificaiton/index";
+import messageRoutes from "./message/index";
 const router = express.Router();
 
 router.use("/api/auth", authRoutes);
@@ -15,4 +16,5 @@ router.use("/api/post", postRoutes);
 router.use("/api/like", likeRoutes);
 router.use("/api/comment", commentRoutes);
 router.use("/api/notification", notificationRoutes);
+router.use("/api/message", messageRoutes);
 export default router;

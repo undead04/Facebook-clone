@@ -9,7 +9,6 @@ class SocketService {
     // event on here
     socket.on("chat message", (msg) => {
       console.log(`Message: ${msg}`);
-      socket.emit("chat message", msg);
     });
   }
 }

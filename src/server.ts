@@ -15,9 +15,13 @@ const io = new SocketServer(server, {
 (global as any)._io = io;
 (global as any)._io.use(authSocketMiddleware);
 (global as any)._io.on("connection", (socket: Socket) => {
+  socket.on("join room", (roomId: string) => {
+    socket.join(roomId);
+  });
   console.log("a user connected is id", socket.id);
   SocketService.connection(socket);
 });
+
 const port = config.port;
 server.listen(port, () => {
   console.log(`Server is running on port ${port}`);

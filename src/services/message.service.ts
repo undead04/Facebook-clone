@@ -1,5 +1,5 @@
-import messageModel from "models/message.model";
-import { Socket } from "socket.io";
+import messageModel from "../models/message.model";
+import { BadRequestError } from "../middlewares/error.response";
 export interface IMessageInput {
   senderId: string;
   receiverId: string;
@@ -7,12 +7,16 @@ export interface IMessageInput {
 }
 export class MessageService {
   async createMessage({ senderId, receiverId, content }: IMessageInput) {
+    if (senderId === receiverId) {
+      throw new BadRequestError("You cannot send message to yourself");
+    }
+
     const newMessage = await messageModel.create({
       senderId,
       receiverId,
       content,
     });
-    (global as any)._io.emit("new message", newMessage);
+    (global as any)._io.to(receiverId).emit("chat message", newMessage);
     return newMessage;
   }
 

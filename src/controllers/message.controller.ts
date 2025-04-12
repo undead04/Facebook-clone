@@ -1,12 +1,13 @@
-import asyncHandle from "helpers/asyncHandle";
-import { OK } from "middlewares/success.response";
-import { MessageService } from "services/message.service";
+import asyncHandle from "../helpers/asyncHandle";
+import { OK } from "../middlewares/success.response";
+import { MessageService } from "../services/message.service";
 import { Request, Response } from "express";
 const service = new MessageService();
 
 export const createMessage = asyncHandle(
   async (req: Request, res: Response) => {
-    const { senderId, receiverId, content } = req.body;
+    const { receiverId, content } = req.body;
+    const senderId = (req as any).user._id;
     new OK({
       message: "Message created successfully",
       metaData: await service.createMessage({ senderId, receiverId, content }),
@@ -35,7 +36,7 @@ export const deleteMessage = asyncHandle(
 );
 
 export const getListChat = asyncHandle(async (req: Request, res: Response) => {
-  const { userId } = req.body;
+  const userId = (req as any).user._id;
   new OK({
     message: "List chat fetched successfully",
     metaData: await service.getListChat(userId),

@@ -6,7 +6,6 @@ import {
   unfriend,
   acceptFriend,
   getFriendRequests,
-  findByNameFriend,
   getFriends,
   rejectFriend,
 } from "../../controllers/friend.controller";
@@ -23,6 +22,5 @@ router.patch("/unfriend", unfriend);
 
 router.get("/friends", getFriends);
 router.get("/friend-requests", getFriendRequests);
-router.get("/find-by-name", findByNameFriend);
 
 export default router;

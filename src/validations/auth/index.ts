@@ -42,7 +42,7 @@ export class LoginInput {
   @MinLength(8, { message: "Password must be at least 8 characters long" })
   password!: string;
 }
-export class VerifyEmailInput {
+export class VerifyOTPInput {
   @IsEmail({}, { message: "Email is not valid" })
   @IsNotEmpty({ message: "Email is required" })
   email!: string;
@@ -56,10 +56,23 @@ export class SendVerifyEmailInput {
   @IsEmail({}, { message: "Email is not valid" })
   @IsNotEmpty({ message: "Email is required" })
   email!: string;
+  typeOTP!: string;
 }
 
 export class RefreshTokenInput {
   @IsNotEmpty({ message: "Refresh token is required" })
   @IsString({ message: "Refresh token must be a string" })
   refreshToken!: string;
+}
+
+export class ForgotPasswordInput {
+  @IsEmail({}, { message: "Email is not valid" })
+  @IsNotEmpty({ message: "Email is required" })
+  email!: string;
+  @IsNotEmpty({ message: "OTP is required" })
+  otp!:string;
+  @IsNotEmpty({ message: "Password is required" })
+  @IsString({ message: "Password must be a string" })
+  @MinLength(8, { message: "Password must be at least 8 characters long" })
+  password!:string;
 }

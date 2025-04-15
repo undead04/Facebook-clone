@@ -2,13 +2,14 @@ import { FriendInput } from "../validations/friend";
 import friendModel from "../models/friend.model";
 import userModel from "../models/user.model";
 import { BadRequestError } from "../middlewares/error.response";
-import notificationPublish from "../messaging/notifcationPublish";
+import {UserRepo} from "../models/Repo/user.repo";
 export class FriendService {
+  private userRepo = new UserRepo()
   async createFriend(data: FriendInput) {
     const { userId, friendId } = data;
 
-    const user = await userModel.findById(userId).lean();
-    const friendUser = await userModel.findById(friendId).lean();
+    const user = await this.userRepo.findById(userId);
+    const friendUser = await this.userRepo.findById(userId);
 
     // check verify friendUser
     if (friendUser?.isVerified === false) {
@@ -30,13 +31,7 @@ export class FriendService {
       friendId,
     });
 
-    // notication
-    await notificationPublish({
-      senderId: userId,
-      receiverId: friendId,
-      content: `${user.profile.firstName} ${user.profile.lastName} sent you a friend request`,
-      type: "friend",
-    });
+    // publish notication
 
     // if friend already exists, update the status to pending
     if (friend) {
@@ -72,8 +67,8 @@ export class FriendService {
     }
 
     // check if friend user is  exist
-    const friendUser = await userModel.findById(friend.friendId);
-    const user = await userModel.findById(friend.userId);
+    const friendUser = await this.userRepo.findById(friend.userId.toString());
+    const user = await this.userRepo.findById(friend.userId.toString());
     if (!friendUser || !user) {
       throw new BadRequestError("Friend user or user not found");
     }
@@ -155,8 +150,8 @@ export class FriendService {
       throw new BadRequestError("Friend request not found");
     }
 
-    const friendUser = await userModel.findById(friend.friendId);
-    const user = await userModel.findById(friend.userId);
+    const friendUser = await this.userRepo.findById(friend.friendId.toString());
+    const user = await this.userRepo.findById(friend.userId.toString());
 
     if (!friendUser || !user) {
       throw new BadRequestError("Friend user or user not found");
@@ -180,16 +175,53 @@ export class FriendService {
 
   async getFriends(userId: string, page: number, limit: number) {
     const skip = (page - 1) * limit;
-    const friends = await friendModel
-      .find({
-        $or: [
-          { userId, status: "accepted" },
-          { friendId: userId, status: "accepted" },
-        ],
-      })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    const friends = await friendModel.aggregate([
+      // get all friends
+      {
+        $match: {
+          $or: [
+            { userId: userId, status: "accepted" },
+            { friendId: userId, status: "accepted" },
+          ],
+        },
+      },
+      // create list userId
+      {
+        $project:{
+          frindUser:{
+            $cond: {
+              if: { $eq: ["$userId", userId] },
+              then: "$friendId", // Nếu bạn là người gửi, đối tác là người nhận
+              else: "$userId", // Nếu bạn không phải người gửi (vậy bạn là người nhận), đối tác là người gửi
+            },
+          }
+        }
+      },
+      // 4. (Tùy chọn) Lookup thêm thông tin của người dùng
+      {
+        $lookup: {
+          from: "users", // tên collection chứa thông tin người dùng; đảm bảo tên đúng collection trong MongoDB
+          localField: "_id", // _id ở đây chính là otherUser id
+          foreignField: "_id", // trường _id trong collection users
+          as: "userInfo",
+        },
+      },
+      // 5. Unwind userInfo nếu bạn muốn lấy object thay vì mảng
+      {
+        $unwind: "$userInfo",
+      },
+      {
+        $skip: skip,
+        $limit:limit
+      },
+      // 6. Dự án chỉ những field bạn cần (vd: id và thông tin user)
+      {
+        $project: {
+          _id: 1,
+          userInfo: 1,
+        },
+      },
+    ])
     return friends;
   }
 
@@ -209,6 +241,7 @@ export class FriendService {
   }
   async findByNameFriend(
     userId: string,
+    search: string,
     name: string,
     page: number,
     limit: number
@@ -220,6 +253,7 @@ export class FriendService {
           { userId, status: "accepted" },
           { friendId: userId, status: "accepted" },
         ],
+        $text: { $search: search },
       })
       .populate({
         path: "friendId",

@@ -88,7 +88,16 @@ const getUserByName = asyncHandle(async (req: Request, res: Response) => {
   }).send(res);
 });
 
+const deleteUser = asyncHandle(async (req: Request, res: Response) => {
+  const userId = (req as any).user._id;
+  new OK({
+    message: "Delete user successfully",
+    metaData: await service.deleteUser(userId),
+  }).send(res);
+});
+
 export {
+  deleteUser,
   getMe,
   updateMe,
   updateAvatar,

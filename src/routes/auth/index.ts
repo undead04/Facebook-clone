@@ -5,16 +5,19 @@ import {
   logout,
   refreshToken,
   verifyEmail,
-  sendVerifyEmail,
+  sendOTP,
+  verifyPassword,
+  forgotPassword
 } from "../../controllers/auth.controller";
 import authMiddleware from "../../middlewares/auth.middleware";
 import { validateBody } from "../../middlewares/validate.middleware";
 import {
   RegisterInput,
   LoginInput,
-  VerifyEmailInput,
+  VerifyOTPInput,
   SendVerifyEmailInput,
   RefreshTokenInput,
+  ForgotPasswordInput
 } from "../../validations/auth";
 
 const router = Router();
@@ -25,12 +28,14 @@ router.post("/login", validateBody(LoginInput), login);
 
 router.post("/refresh-token", validateBody(RefreshTokenInput), refreshToken);
 
-router.post("/verify-email", validateBody(VerifyEmailInput), verifyEmail);
+router.post("/verify-email", validateBody(VerifyOTPInput), verifyEmail);
 router.post(
-  "/send-verify-email",
-  validateBody(SendVerifyEmailInput),
-  sendVerifyEmail
+  "/send-otp",
+  sendOTP
 );
+
+router.post("/verify-password", validateBody(VerifyOTPInput), verifyPassword);
+router.post("/forgot-password", validateBody(ForgotPasswordInput), forgotPassword);
 
 router.use(authMiddleware);
 router.post("/logout", logout);

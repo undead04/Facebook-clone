@@ -3,7 +3,6 @@ import postModel from "../models/post.model";
 import likeModel from "../models/like.model";
 import mongoose, { Types } from "mongoose";
 import redisClient from "../databases/init.redis";
-import notificationPublish from "../messaging/notifcationPublish";
 import friendModel from "../models/friend.model";
 import { stringToBitIndex } from "../utils/index";
 export class LikeService {
@@ -65,12 +64,7 @@ export class LikeService {
 
       // 8. Gửi thông báo nếu là bạn bè
       if (friend) {
-        await notificationPublish({
-          senderId: activeUserId.toString(),
-          receiverId: post.userId.toString(),
-          content: `liked your post ${post.content}`,
-          type: "like",
-        });
+        
       }
 
       return "Liked Successfully";

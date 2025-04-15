@@ -10,17 +10,17 @@ import {
   getInfoData,
   verifyToken,
 } from "../utils";
-import redisClient from "../databases/init.redis";
-import emailPublish from "../messaging/emailPublish";
-import { generateVerifyEmailTemplate } from "../utils/templates/verifyEmailTemplate";
-
+import {  getCacheID, setCacheIDExprication,deleteCacheID } from "../models/Repo/cache.repo";
+import { OtpStrategyFactory, typeOTP } from "./verifyOTP/OtpStrategyFactory";
+import {UserRepo} from "../models/Repo/user.repo"
 export class AuthService {
+  private userRepo = new UserRepo();
   // register
   register = async (data: RegisterInput) => {
     const { email, password, firstName, lastName, birthday, gender } = data;
 
     // check if user already exists
-    const user = await userModel.findOne({ email }).lean();
+    const user = await this.userRepo.findbyEmail(email);
     if (user) {
       throw new BadRequestError("User already exists");
     }
@@ -29,7 +29,7 @@ export class AuthService {
     const hashedPassword = await hashPassword(password);
 
     // create user
-    const newUser = await userModel.create({
+    await userModel.create({
       email,
       password: hashedPassword,
       profile: {
@@ -40,19 +40,12 @@ export class AuthService {
       },
     });
 
-    // generate OTP
-    const otp = generateOTP();
-
-    // save OTP to redis
-    await this.setOPTRedis(email, otp);
-
-    // send OTP to user
-    await this.sendEmailVerify(email, otp, firstName, lastName);
+    await this.sendOTP(email,typeOTP.register);
 
     return "Register successfully";
   };
   login = async ({ email, password }: LoginInput) => {
-    const user = await userModel.findOne({ email }).lean();
+    const user = await this.userRepo.findbyEmail(email);
     if (!user) {
       throw new BadRequestError("User not found");
     }
@@ -95,8 +88,9 @@ export class AuthService {
       accessToken,
     };
   };
+
   logout = async (userId: string) => {
-    const user = await userModel.findById(userId);
+    const user = await this.userRepo.findById(userId);
     if (!user) {
       throw new BadRequestError("User not found");
     }
@@ -113,9 +107,6 @@ export class AuthService {
 
     const decoded = await verifyToken(refreshToken);
 
-    console.log("user", user);
-    console.log("decoded", decoded);
-
     if (user._id.toString() !== decoded._id) {
       throw new BadRequestError("User not found");
     }
@@ -129,74 +120,47 @@ export class AuthService {
     return accessToken;
   };
 
-  sendVerifyEmail = async (email: string) => {
-    const user = await userModel.findOne({ email }).lean();
-    if (!user) {
-      throw new BadRequestError("User not found");
-    }
-    if (user.isVerified) {
-      throw new BadRequestError("User already verified");
-    }
-
-    const otp = generateOTP();
-
-    await this.setOPTRedis(email, otp);
-
-    // send OTP to user
-    await this.sendEmailVerify(
-      email,
-      otp,
-      user.profile.firstName,
-      user.profile.lastName
-    );
-
-    return "Verify email sent";
-  };
-
-  verifyEmail = async (email: string, otp: string) => {
-    const user = await userModel.findOne({ email }).lean();
-    if (!user) {
-      throw new BadRequestError("User not found");
-    }
-    if (user.isVerified) {
-      throw new BadRequestError("User already verified");
-    }
-
-    const otpFromRedis = await this.getOPTRedis(email);
-    if (otpFromRedis !== otp) {
-      throw new BadRequestError("OTP is incorrect");
-    }
-
-    await userModel.findByIdAndUpdate(user._id, {
-      $set: {
-        isVerified: true,
-      },
-      new: true,
-    });
-
-    await this.deleteOPTRedis(email);
-
-    return "Email verified";
-  };
-  private async setOPTRedis(email: string, otp: string) {
-    await redisClient.set(`verify:${email}`, otp, "EX", 60 * 15);
+  async sendOTP(email: string,type:typeOTP) {
+    const factory = OtpStrategyFactory.getStrategy(type);
+    await factory.sendOTP(email);
   }
-  private async getOPTRedis(email: string) {
-    return await redisClient.get(`verify:${email}`);
+
+  async verifyUser(email:string,otp:string){
+    const user = await this.userRepo.findbyEmail(email); 
+    if(user && user.isVerified){
+      throw new BadRequestError("User already verified")
+    }
+    const factory = OtpStrategyFactory.getStrategy(typeOTP.register);
+    const isOTP =  await factory.verifyOTP(email,otp);
+    if(!isOTP){
+      throw new BadRequestError("OTP is invalid")
+    }
+    await this.userRepo.findByUpdateVerify(email);
   }
-  private async deleteOPTRedis(email: string) {
-    await redisClient.del(`verify:${email}`);
+
+  async verifyPassword(email:string,otp:string){
+    const factory = OtpStrategyFactory.getStrategy(typeOTP.forgot);
+    const isOTP =  await factory.verifyOTP(email,otp);
+    if(!isOTP){
+      throw new BadRequestError("OTP is invalid")
+    }
+    const newOTP = generateOTP()
+    const key = `password:${email}`
+    await setCacheIDExprication({ key, value: newOTP, exp: 60 * 15 })
+    return {
+      newOTP
+    }
   }
-  private async sendEmailVerify(
-    email: string,
-    otp: string,
-    firstName: string,
-    lastName: string
-  ) {
-    await emailPublish({
-      to: email,
-      subject: "OTP for verify email",
-      html: generateVerifyEmailTemplate(otp, `${firstName} ${lastName}`),
-    });
+
+  async forgotPassword(otp:string,email:string,password:string){
+    const key = `password:${email}`
+    const cacheOTP = await getCacheID({key})
+    console.log(cacheOTP);
+    if(otp !== cacheOTP){
+      throw new BadRequestError("OTP is invalid")
+    }
+    const passwordHash = await hashPassword(password)
+    await this.userRepo.findByUpdatePassword(email,passwordHash)
+    await deleteCacheID({key})
   }
 }

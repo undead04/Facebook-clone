@@ -78,21 +78,4 @@ export const getFriendRequests = asyncHandle(
   }
 );
 
-export const findByNameFriend = asyncHandle(
-  async (req: Request, res: Response) => {
-    const { name } = req.query;
-    const { page, limit } = req.query;
-    const userId = (req as any).user._id;
-    const pageNumber = Number(page) || 1;
-    const limitNumber = Number(limit) || 10;
-    new OK({
-      message: "Find by name friend successfully",
-      metaData: await service.findByNameFriend(
-        userId,
-        name as string,
-        pageNumber,
-        limitNumber
-      ),
-    }).send(res);
-  }
-);
+

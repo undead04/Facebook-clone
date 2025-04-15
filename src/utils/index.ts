@@ -86,7 +86,14 @@ const stringToBitIndex = (userId: string): number => {
   return parseInt(hash.slice(0, 8), 16); // lấy 32-bit integer
 };
 
+const randomNumber = (min:number,max:number):number =>{
+  return Math.floor(Math.random() * (max - min + 1) + min);
+}
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export {
+  sleep,
+  randomNumber,
   getFilePathFromUrl,
   getInfoData,
   getSelectData,

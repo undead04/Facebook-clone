@@ -5,7 +5,7 @@ export interface IPost extends Document {
   userId: Types.ObjectId;
   content: string;
   imagesName: string[];
-  imagesUrl: string[];
+  typePost: string;
   countLike: number;
   countComment: number;
   createdAt: Date;
@@ -19,7 +19,7 @@ const postSchema = new Schema<IPost>(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     content: { type: String, required: true },
     imagesName: { type: [String], default: [] },
-    imagesUrl: { type: [String], default: [] },
+    typePost: { type: String, enum: ["profile", "image"], default: "image" },
     countLike: { type: Number, default: 0 },
     countComment: { type: Number, default: 0 },
     statusPost: {

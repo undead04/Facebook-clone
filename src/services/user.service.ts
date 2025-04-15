@@ -1,93 +1,153 @@
+'use strict'
 import { BadRequestError } from "../middlewares/error.response";
 import userModel from "../models/user.model";
 import {
   changePasswordInput,
   updateUserInput,
 } from "../validations/user/index";
-import uploadImagePublish from "../messaging/uploadImagePublish";
-import { comparePassword, getInfoData, hashPassword } from "../utils";
-import deleteImagePublish from "../messaging/deleteImagePublish";
-import { UploadType } from "./upload/interface/IUploadStrategy";
+import { comparePassword, getInfoData, hashPassword, randomNumber } from "../utils";
+import {deleteCacheID, setCacheIDExprication,getCacheID } from "../models/Repo/cache.repo";
+import { USER } from "../models/cacheContant";
+import {AWSBucketService} from "./AWSBucket.service";
+import { postPublish } from "../messaging/postPublish";
+import { UserRepo } from "../models/Repo/user.repo";
+
 export class UserService {
+  private awsBuckset:AWSBucketService
+  private repo:UserRepo
+  constructor(){
+    this.awsBuckset = new AWSBucketService()
+    this.repo = new UserRepo()
+  }
+
   getMe = async (userId: string) => {
-    const user = await userModel.findById(userId).select(["-password", "-__v"]);
+    // Get User CaChe
+    const cacheUser = await this.getCacheUser(userId);
+    if (cacheUser) {
+      return cacheUser;
+    }
+    // find user DB
+    const user = await userModel.findById(userId).where({ isDelete: false }).select(["-password", "-__v"]);
+
+    // set Cache
+    await this.setCacheUser(userId,user);
+
     if (!user) {
       throw new BadRequestError("User not found");
     }
+
     return user;
   };
 
   updateMe = async (userId: string, data: updateUserInput) => {
     // check user exists
-    const user = await userModel.findById(userId);
+    const user = await this.repo.findById(userId)
     if (!user) {
       throw new BadRequestError("User not found");
     }
+
     // assign data to user
     Object.assign(user.profile, data);
     await user.save();
+
+    // delete cache
+    await this.deleteCacheUser(userId);
+
     return getInfoData(["profile"], user);
   };
+
   updateAvatar = async (userId: string, avatar?: Express.Multer.File) => {
-    const user = await userModel.findById(userId);
+    // check Exit
+    const user = await this.repo.findById(userId)
     if (!user) {
       throw new BadRequestError("User not found");
     }
+
+    // update Avatar
     if (avatar) {
-      await uploadImagePublish({
-        type: UploadType.AVATAR,
-        files: [avatar],
-        id: userId,
-      });
-    }
+      const result = await this.awsBuckset.uploadImageFromLocal(avatar,"avatar")
+      user.profile.avatarName = result.key;
+      user.save();
+      // publish post
+      await postPublish({
+        userId: userId,
+        content: `Update Avatar`,
+        imagesName: result.key,
+        typePost: "profile",
+      })
+      // publish notifi
+      
+    }    
+    // delete Cache
+    await this.deleteCacheUser
+
+    return user
   };
+
   updateCoverPhoto = async (
     userId: string,
     coverPhoto?: Express.Multer.File
   ) => {
-    const user = await userModel.findById(userId);
+    // check Exit
+    const user = await this.repo.findById(userId)
     if (!user) {
       throw new BadRequestError("User not found");
     }
+
+    // update CoverPhoto
     if (coverPhoto) {
-      await uploadImagePublish({
-        type: UploadType.COVER,
-        files: [coverPhoto],
-        id: userId,
-      });
+      const result = await this.awsBuckset.uploadImageFromLocal(coverPhoto,"coverPhoto")
+      user.profile.coverPhotoName = result.key;
+      user.save();
+      // publish post
+      await postPublish({
+        userId: userId,
+        content: `Update CoverPhoto`,
+        imagesName: result.key,
+        typePost: "profile",
+      })
+      // publish notifi      
     }
+    
+    // delete Cache
+    await this.deleteCacheUser(userId)
+
+    return user
   };
+
   deleteAvatar = async (userId: string) => {
-    const user = await userModel.findById(userId);
-
+    // check Exit
+    const user = await this.repo.findById(userId)
     if (!user) {
       throw new BadRequestError("User not found");
     }
 
-    // delete image from rabbitmq
-    await deleteImagePublish({ filePath: user.profile.avatarName });
-
-    user.profile.avatarUrl = "";
     user.profile.avatarName = "";
-
     await user.save();
+
+    // delete Cache
+    await this.deleteCacheUser(userId)
+
+    return user
   };
+
   deleteCoverPhoto = async (userId: string) => {
-    const user = await userModel.findById(userId);
+    // Check exit
+    const user = await this.repo.findById(userId)
     if (!user) {
       throw new BadRequestError("User not found");
     }
-    // delete image from rabbitmq
-    await deleteImagePublish({ filePath: user.profile.coverPhotoName });
 
-    user.profile.coverPhotoUrl = "";
     user.profile.coverPhotoName = "";
-
     await user.save();
+
+    // delete Cache
+    await this.deleteCacheUser(userId)
+    return user
   };
 
   changePassword = async (userId: string, data: changePasswordInput) => {
-    const user = await userModel.findById(userId);
+    const user = await this.repo.findById(userId)
 
     if (!user) {
       throw new BadRequestError("User not found");
@@ -133,4 +193,26 @@ export class UserService {
 
     return users;
   };
+
+  async deleteUser(userId: string) {
+    await userModel.findByIdAndUpdate(userId, { $set: { isDeleted: true },new: true });
+    await this.deleteCacheUser(userId)
+  }
+
+  private deleteCacheUser = async(userId:string)=>{
+    const key = `${USER}:${userId}`;
+    await deleteCacheID({key})
+  }
+
+  private setCacheUser = async(userId:string,user:any) =>{
+    const key = `${USER}:${userId}`;
+    const value = JSON.stringify(user);
+    const exp = 30 + randomNumber(10,30)
+    await setCacheIDExprication({ key, value, exp });
+  }
+
+  private getCacheUser = async(userId:string)=>{
+    const key = `${USER}:${userId}`;
+    return await getCacheID({key})
+  }
 }

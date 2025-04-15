@@ -1,39 +1,65 @@
-"use strict";
 import { connectRabbitMQ } from "../databases/init.rabbitmq";
 import { SendEmailOptions } from "../services/email.service";
 
-const emailPublish = async (data: SendEmailOptions) => {
+export const emailPublish = async ({ to, subject, html }: SendEmailOptions) => {
   try {
     const { channel } = await connectRabbitMQ();
 
+    // Cấu hình tên exchange, queue, routing key
     const emailExchange = "email-exchange";
+    const emailRoutingKey = "email.routing.key";
+
     const emailQueue = "emailQueue";
-    const emailExchangeDLX = "email-exDLX";
-    const emailRoutingkeyDLX = "email-routingkey-DLX";
-    // 1. Assert exchange
-    await channel.assertExchange(emailExchange, "direct", {
+
+    const emailDLXExchange = "email-DLX-exchange";
+    const emailDLXRoutingKey = "email.DLX.routing.key";
+    const emailDLXQueue = "emailDLXQueue";
+
+    const retryExchange = "email-retry-exchange";
+    const retryRoutingKey = "email.retry.routing.key";
+    const retryQueue = "emailRetryQueue";
+
+    // 1. Tạo exchange retry để xử lý retry sau khi thất bại
+    await channel.assertExchange(retryExchange, "direct", { durable: true });
+
+    await channel.assertQueue(retryQueue, {
       durable: true,
+      deadLetterExchange: emailExchange, // quay lại queue chính sau retry
+      deadLetterRoutingKey: emailRoutingKey,
+      messageTtl: 5000, // chờ 5s rồi quay lại
     });
 
-    // 2. Create queue with DLX support
-    const queueResult = await channel.assertQueue(emailQueue, {
+    await channel.bindQueue(retryQueue, retryExchange, retryRoutingKey);
+
+    // 2. Tạo exchange chính (topic hoặc direct đều được)
+    await channel.assertExchange(emailExchange, "direct", { durable: true });
+
+    // 3. Tạo queue chính + cấu hình DLX nếu fail
+    await channel.assertQueue(emailQueue, {
       durable: true,
-      exclusive: false,
-      deadLetterExchange: emailExchangeDLX,
-      deadLetterRoutingKey: emailRoutingkeyDLX,
+      deadLetterExchange: emailDLXExchange,
+      deadLetterRoutingKey: emailDLXRoutingKey,
     });
 
-    // 3. Bind queue to exchange
-    await channel.bindQueue(queueResult.queue, emailExchange, emailExchangeDLX);
+    await channel.bindQueue(emailQueue, emailExchange, emailRoutingKey);
 
-    // 4. Send message
-    console.log("Publishing email to queue:", data);
+    // 4. Tạo exchange + queue cho DLX (log lỗi, phân tích, v.v.)
+    await channel.assertExchange(emailDLXExchange, "direct", { durable: true });
 
-    await channel.sendToQueue(
-      queueResult.queue,
-      Buffer.from(JSON.stringify(data)),
+    await channel.assertQueue(emailDLXQueue, { durable: true });
+    await channel.bindQueue(emailDLXQueue, emailDLXExchange, emailDLXRoutingKey);
+
+    // 5. Gửi message đến exchange chính
+    const message = { to, subject, html };
+
+    console.log("📤 Sending email to queue...");
+    await channel.publish(
+      emailExchange,
+      emailRoutingKey,
+      Buffer.from(JSON.stringify(message)),
       {
-        expiration: "10000", // TTL in ms (10s)
+        expiration: "10000", // TTL: 10s
+        persistent: true,
       }
     );
 
@@ -41,8 +67,7 @@ const emailPublish = async (data: SendEmailOptions) => {
       channel.close();
     }, 500);
   } catch (error) {
-    console.error("Producer email error:", error);
+    console.error("❌ Error while publishing email:", error);
     throw error;
   }
 };
-export default emailPublish;

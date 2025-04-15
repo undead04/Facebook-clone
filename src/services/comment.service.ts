@@ -3,7 +3,6 @@ import postModel from "../models/post.model";
 import { Types } from "mongoose";
 import { NotFoundError } from "../middlewares/error.response";
 import friendModel from "../models/friend.model";
-import notificationPublish from "../messaging/notifcationPublish";
 export class CommentService {
   async createComment(
     postId: string,
@@ -75,13 +74,9 @@ export class CommentService {
         })
         .lean();
     }
+
+    // publish notification
     if (friend) {
-      await notificationPublish({
-        senderId: userId.toString(),
-        receiverId: post.userId.toString(),
-        content: `commented on your post ${post.content}`,
-        type: "comment",
-      });
     }
     return comment;
   }

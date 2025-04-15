@@ -36,21 +36,37 @@ export const refreshToken = asyncHandle(async (req: Request, res: Response) => {
     metaData: await service.refreshToken(refreshToken),
   }).send(res);
 });
+export const sendOTP = asyncHandle(
+  async (req: Request, res: Response) => {
+    const { email,typeOTP } = req.body;
+    new OK({
+      message: "Send OTP email successfully",
+      metaData: await service.sendOTP(email,typeOTP),
+    }).send(res);
+  }
+);
 
 export const verifyEmail = asyncHandle(async (req: Request, res: Response) => {
   const { email, otp } = req.body;
   new OK({
     message: "Verify email successfully",
-    metaData: await service.verifyEmail(email, otp),
+    metaData: await service.verifyUser(email, otp),
   }).send(res);
 });
 
-export const sendVerifyEmail = asyncHandle(
-  async (req: Request, res: Response) => {
-    const { email } = req.body;
-    new OK({
-      message: "Send verify email successfully",
-      metaData: await service.sendVerifyEmail(email),
-    }).send(res);
-  }
-);
+export const verifyPassword = asyncHandle(async (req: Request, res: Response) => {
+  const { email, otp } = req.body;
+  new OK({
+    message: "Verify password successfully",
+    metaData: await service.verifyPassword(email, otp),
+  }).send(res);
+});
+
+export const forgotPassword = asyncHandle(async(req:Request,res:Response)=>{
+  const {email,otp,password} = req.body;
+  new OK({
+    message: "Forgot password successfully",
+    metaData: await service.forgotPassword(otp,email,password),
+  }).send(res);
+})
+

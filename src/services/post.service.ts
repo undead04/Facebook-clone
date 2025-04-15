@@ -7,13 +7,13 @@ import postModel from "../models/post.model";
 import userModel from "../models/user.model";
 import friendModel from "../models/friend.model";
 import { ForbiddenError, NotFoundError } from "../middlewares/error.response";
-import uploadImagePublish from "../messaging/uploadImagePublish";
-import { UploadType } from "../services/upload/interface/IUploadStrategy";
 import { Types } from "mongoose";
+import { UserRepo } from "../models/Repo/user.repo";
 export class PostService {
+  private userRepo = new UserRepo()
   async createPost({ userId, content, images, statusPost }: ICreatePost) {
     // check user
-    const user = await userModel.findById(userId);
+    const user = await this.userRepo.findById(userId);
     if (!user) {
       throw new NotFoundError("User not found");
     }
@@ -26,11 +26,7 @@ export class PostService {
     // upload images rabbitmq
     if (images) {
       if (images.length > 0) {
-        await uploadImagePublish({
-          type: UploadType.POST,
-          files: images,
-          id: newPost._id.toString(),
-        });
+        
       }
     }
     return "Create post successfully";
@@ -180,11 +176,7 @@ export class PostService {
     // upload images rabbitmq
     if (images) {
       if (images.length > 0) {
-        await uploadImagePublish({
-          type: UploadType.POST,
-          files: images,
-          id: postId,
-        });
+        
       }
     }
     await post.save();
@@ -241,4 +233,11 @@ export class PostService {
 
     return posts;
   }
+  private async setCachePost(postId:string,value:any) {
+
+  }
+  private async getCachePost(postId:string){
+
+  }
+  private async deleteCacheDelete(postId:string){}
 }

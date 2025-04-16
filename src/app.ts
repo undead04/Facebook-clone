@@ -3,6 +3,8 @@ import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import morgan from "morgan";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./configs/swagger";
 import instanceMongodb from "./databases/init.mongodb";
 import router from "./routes";
 import { ReasonStatusCode, StatusCode } from "./middlewares/error.response";
@@ -20,6 +22,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // init cors
 app.use(cors());
+
+// Swagger documentation
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 //init db
 instanceMongodb;

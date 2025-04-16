@@ -1,9 +1,9 @@
-import app from "./app";
-import config from "./configs/config";
+import app from "./src/app";
+import config from "./src/configs/config";
 import http from "http";
 import { Server as SocketServer, Socket } from "socket.io";
-import SocketService from "./services/socket.service";
-import authSocketMiddleware from "./middlewares/authSocket.middleware";
+import SocketService from "./src/services/socket.service";
+import authSocketMiddleware from "./src/middlewares/authSocket.middleware";
 const server = http.createServer(app);
 const io = new SocketServer(server, {
   cors: {

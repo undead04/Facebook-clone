@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES6",
     "module": "CommonJS",
-    "rootDir": "./src",
+    "rootDir": "./",
     "outDir": "./dist",
     "baseUrl": "./src",
     "experimentalDecorators": true,
@@ -14,6 +14,6 @@
     "types": ["node"],
     "typeRoots": ["./src/@types", "./node_modules/@types"]
   },
-  "include": ["src"],
+  "include": ["src", "server.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -40,15 +40,19 @@ jobs:
     - name: Setup environment
       run: |
         cp .env.production .env
-        # Replace placeholder values with GitHub secrets
-        sed -i "s|\$JWT_SECRET|${{ secrets.JWT_SECRET }}|g" .env
-        sed -i "s|\$EMAIL_USER|${{ secrets.EMAIL_USER }}|g" .env
-        sed -i "s|\$EMAIL_PASSWORD|${{ secrets.EMAIL_PASSWORD }}|g" .env
-        sed -i "s|\$FIREBASE_STORAGE_BUCKET|${{ secrets.FIREBASE_STORAGE_BUCKET }}|g" .env
-        sed -i "s|\$AWS_BUCKET_ACESS_KEY|${{ secrets.AWS_BUCKET_ACESS_KEY }}|g" .env
-        sed -i "s|\$AWS_BUCKET_SECRET_KEY|${{ secrets.AWS_BUCKET_SECRET_KEY }}|g" .env
-        sed -i "s|\$AWS_KEY_GROUP|${{ secrets.AWS_KEY_GROUP }}|g" .env
-        sed -i "s|\$AWS_PRIVATE_KEY|${{ secrets.AWS_PRIVATE_KEY }}|g" .env
+        node -e "
+          const fs = require('fs');
+          let env = fs.readFileSync('.env', 'utf8');
+          env = env
+            .replace('\$JWT_SECRET', '${{ secrets.JWT_SECRET }}')
+            .replace('\$EMAIL_USER', '${{ secrets.EMAIL_USER }}')
+            .replace('\$EMAIL_PASSWORD', '${{ secrets.EMAIL_PASSWORD }}')
+            .replace('\$FIREBASE_STORAGE_BUCKET', '${{ secrets.FIREBASE_STORAGE_BUCKET }}')
+            .replace('\$AWS_BUCKET_ACESS_KEY', '${{ secrets.AWS_BUCKET_ACESS_KEY }}')
+            .replace('\$AWS_BUCKET_SECRET_KEY', '${{ secrets.AWS_BUCKET_SECRET_KEY }}')
+            .replace('\$AWS_KEY_GROUP', '${{ secrets.AWS_KEY_GROUP }}')
+            .replace('\$AWS_PRIVATE_KEY', \`${{ secrets.AWS_PRIVATE_KEY }}\`);
+        fs.writeFileSync('.env', env);"
         
         
     - name: Prepare deployment package

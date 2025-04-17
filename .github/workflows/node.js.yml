@@ -14,6 +14,7 @@ jobs:
     runs-on: self-hosted
     env:
       NODE_ENV: production
+      DEPLOYMENT_DIR: /home/ec2-user/facebook-clone-app
 
     strategy:
       matrix:
@@ -47,12 +48,59 @@ jobs:
         sed -i "s|\$EMAIL_USER|${{ secrets.EMAIL_USER }}|g" .env
         sed -i "s|\$EMAIL_PASSWORD|${{ secrets.EMAIL_PASSWORD }}|g" .env
         sed -i "s|\$FIREBASE_STORAGE_BUCKET|${{ secrets.FIREBASE_STORAGE_BUCKET }}|g" .env
+        sed -i "s|\$AWS_BUCKET_ACESS_KEY|${{ secrets.AWS_BUCKET_ACESS_KEY }}|g" .env
+        sed -i "s|\$AWS_BUCKET_SECRET_KEY|${{ secrets.AWS_BUCKET_SECRET_KEY }}|g" .env
+        sed -i "s|\$AWS_KEY_GROUP|${{ secrets.AWS_KEY_GROUP }}|g" .env
+        sed -i "s|\$AWS_PRIVATE_KEY|${{ secrets.AWS_PRIVATE_KEY }}|g" .env
         
         # Add MongoDB credentials
         sed -i "s|admin:password|${{ secrets.MONGODB_USERNAME }}:${{ secrets.MONGODB_PASSWORD }}|g" .env
         
         # Add RabbitMQ credentials
         sed -i "s|admin:password@localhost:5672|${{ secrets.RABBITMQ_USERNAME }}:${{ secrets.RABBITMQ_PASSWORD }}@localhost:5672|g" .env
+        
+    - name: Prepare deployment package
+      run: |
+        # Create deployment directory if it doesn't exist
+        mkdir -p ${{ env.DEPLOYMENT_DIR }}
+        
+        # Create or update deployment package with only necessary files
+        mkdir -p deployment-package
+        
+        # Copy dist folder (compiled code)
+        cp -r dist deployment-package/
+        
+        # Copy .env file
+        cp .env deployment-package/
+        
+        # Copy package.json and package-lock.json
+        cp package.json package-lock.json deployment-package/
+        
+        # Copy database initialization script
+        mkdir -p deployment-package/dist/scripts
+        cp -r dist/scripts/db-init.js deployment-package/dist/scripts/
+        
+    - name: Deploy to EC2
+      run: |
+        # Stop the existing PM2 process if it exists
+        pm2 stop facebook-clone || true
+        pm2 delete facebook-clone || true
+        
+        # Backup the current version if exists
+        if [ -d "${{ env.DEPLOYMENT_DIR }}-backup" ]; then
+          rm -rf ${{ env.DEPLOYMENT_DIR }}-backup
+        fi
+        
+        if [ -d "${{ env.DEPLOYMENT_DIR }}" ]; then
+          mv ${{ env.DEPLOYMENT_DIR }} ${{ env.DEPLOYMENT_DIR }}-backup
+        fi
+        
+        # Copy deployment package to deployment directory
+        cp -r deployment-package ${{ env.DEPLOYMENT_DIR }}
+        
+        # Install production dependencies only
+        cd ${{ env.DEPLOYMENT_DIR }}
+        npm install --production
         
     - name: Start Docker containers for database services
       run: |
@@ -62,7 +110,11 @@ jobs:
         sed -i "s|RABBITMQ_DEFAULT_USER=admin|RABBITMQ_DEFAULT_USER=${{ secrets.RABBITMQ_USERNAME }}|g" docker-compose.yml
         sed -i "s|RABBITMQ_DEFAULT_PASS=password|RABBITMQ_DEFAULT_PASS=${{ secrets.RABBITMQ_PASSWORD }}|g" docker-compose.yml
         
+        # Copy docker-compose file to deployment directory
+        cp docker-compose.yml ${{ env.DEPLOYMENT_DIR }}/
+        
         # Stop and remove existing containers
+        cd ${{ env.DEPLOYMENT_DIR }}
         docker-compose down
         
         # Start the database services
@@ -83,19 +135,22 @@ jobs:
       run: |
         # Run migrations or initialize database if needed
         echo "Initializing databases if needed"
+        cd ${{ env.DEPLOYMENT_DIR }}
         node dist/scripts/db-init.js || true
     
-    - name: Deploy application
+    - name: Start application
       run: |
-        # Stop the existing PM2 process if it exists
-        pm2 stop facebook-clone || true
-        pm2 delete facebook-clone || true
-        
+        cd ${{ env.DEPLOYMENT_DIR }}
         # Start the application with PM2
         pm2 start npm --name "facebook-clone" -- start
         pm2 save
     
     - name: Monitor deployment
       run: |
-        echo "Application deployed successfully"
+        echo "Application deployed successfully to ${{ env.DEPLOYMENT_DIR }}"
         pm2 status
+        
+    - name: Cleanup
+      run: |
+        # Remove deployment package
+        rm -rf deployment-package

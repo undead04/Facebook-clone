@@ -1,0 +1,21 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = __importDefault(require("../../middlewares/auth.middleware"));
+const post_controller_1 = require("../../controllers/post.controller");
+const validate_middleware_1 = require("../../middlewares/validate.middleware");
+const PostInput_1 = require("../../validations/post/PostInput");
+const multer_middleware_1 = require("../../middlewares/multer.middleware");
+const router = (0, express_1.Router)();
+router.use(auth_middleware_1.default);
+router.post("/create", multer_middleware_1.uploadMemory.array("post"), (0, validate_middleware_1.validateBody)(PostInput_1.PostInput), post_controller_1.createPost);
+router.get("/me", post_controller_1.getPostsMe);
+router.get("/user/:userId", post_controller_1.getPosts);
+router.patch("/:postId/status", (0, validate_middleware_1.validateBody)(PostInput_1.UpdateStatusPostInput), post_controller_1.updateStatusPost);
+router.put("/:postId", multer_middleware_1.uploadMemory.array("post"), post_controller_1.updatePost);
+router.get("/cursor", post_controller_1.getPostsByCursor);
+router.get("/:postId", post_controller_1.getPostById);
+exports.default = router;

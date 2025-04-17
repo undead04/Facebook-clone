@@ -4,6 +4,8 @@
   "main": "server.ts",
   "scripts": {
     "dev": "nodemon server.ts",
+    "build": "npx tsc",
+    "start": "node dist/server.js",
     "worker": "nodemon src/workers/index.ts"
   },
   "keywords": [],

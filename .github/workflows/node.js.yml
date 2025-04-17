@@ -34,9 +34,6 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
-    - name: Build project
-      run: npm run build
-    
     - name: Run tests
       run: npm test || true
     
@@ -53,11 +50,6 @@ jobs:
         sed -i "s|\$AWS_KEY_GROUP|${{ secrets.AWS_KEY_GROUP }}|g" .env
         sed -i "s|\$AWS_PRIVATE_KEY|${{ secrets.AWS_PRIVATE_KEY }}|g" .env
         
-        # Add MongoDB credentials
-        sed -i "s|admin:password|${{ secrets.MONGODB_USERNAME }}:${{ secrets.MONGODB_PASSWORD }}|g" .env
-        
-        # Add RabbitMQ credentials
-        sed -i "s|admin:password@localhost:5672|${{ secrets.RABBITMQ_USERNAME }}:${{ secrets.RABBITMQ_PASSWORD }}@localhost:5672|g" .env
         
     - name: Prepare deployment package
       run: |

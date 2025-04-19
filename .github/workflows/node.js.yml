@@ -57,60 +57,52 @@ jobs:
         
     - name: Prepare deployment package
       run: |
-        # Create deployment directory if it doesn't exist
-        mkdir -p ${{ env.DEPLOYMENT_DIR }}
-        
-        # Create or update deployment package with only necessary files
+        # Tạo thư mục triển khai nếu chưa có
+        sudo mkdir -p ${{ env.DEPLOYMENT_DIR }}
+    
+        # Tạo thư mục đóng gói
         mkdir -p deployment-package
-        
+    
         # Copy dist folder (compiled code)
         cp -r dist deployment-package/
-        
+    
         # Copy .env file
         cp .env deployment-package/
-        
-        # Copy package.json and package-lock.json
+    
+        # Copy package.json và package-lock.json
         cp package.json package-lock.json deployment-package/
-        
+    
         # Copy database initialization script
         mkdir -p deployment-package/dist/scripts
         cp -r dist/scripts/db-init.js deployment-package/dist/scripts/
         
     - name: Deploy to EC2
       run: |
-        # Stop the existing PM2 process if it exists
+        # Dừng ứng dụng đang chạy
         pm2 stop facebook-clone || true
         pm2 delete facebook-clone || true
-        
-        # Backup the current version if exists
+    
+        # Backup phiên bản cũ (nếu có)
         if [ -d "${{ env.DEPLOYMENT_DIR }}-backup" ]; then
-          rm -rf ${{ env.DEPLOYMENT_DIR }}-backup
+          sudo rm -rf ${{ env.DEPLOYMENT_DIR }}-backup
         fi
-        
+    
         if [ -d "${{ env.DEPLOYMENT_DIR }}" ]; then
-          mv ${{ env.DEPLOYMENT_DIR }} ${{ env.DEPLOYMENT_DIR }}-backup
+          sudo mv ${{ env.DEPLOYMENT_DIR }} ${{ env.DEPLOYMENT_DIR }}-backup
         fi
-        
-        # Copy deployment package to deployment directory
-        cp -r deployment-package ${{ env.DEPLOYMENT_DIR }}
-        
-        # Install production dependencies only
-        cd ${{ env.DEPLOYMENT_DIR }}
-        npm install --production
+    
+        # Copy gói triển khai sang thư mục chính thức
+        sudo cp -r deployment-package ${{ env.DEPLOYMENT_DIR }}
+
         
     - name: Start Docker containers for database services
       run: |
-        # Update docker-compose environment
-        sed -i "s|MONGO_INITDB_ROOT_USERNAME=admin|MONGO_INITDB_ROOT_USERNAME=${{ secrets.MONGODB_USERNAME }}|g" docker-compose.yml
-        sed -i "s|MONGO_INITDB_ROOT_PASSWORD=password|MONGO_INITDB_ROOT_PASSWORD=${{ secrets.MONGODB_PASSWORD }}|g" docker-compose.yml
-        sed -i "s|RABBITMQ_DEFAULT_USER=admin|RABBITMQ_DEFAULT_USER=${{ secrets.RABBITMQ_USERNAME }}|g" docker-compose.yml
-        sed -i "s|RABBITMQ_DEFAULT_PASS=password|RABBITMQ_DEFAULT_PASS=${{ secrets.RABBITMQ_PASSWORD }}|g" docker-compose.yml
         
         # Copy docker-compose file to deployment directory
-        cp docker-compose.yml ${{ env.DEPLOYMENT_DIR }}/
+        sudo cp docker-compose.yml ${{ env.DEPLOYMENT_DIR }}/
         
         # Stop and remove existing containers
-        cd ${{ env.DEPLOYMENT_DIR }}
+        sudo cd ${{ env.DEPLOYMENT_DIR }}
         docker-compose down
         
         # Start the database services

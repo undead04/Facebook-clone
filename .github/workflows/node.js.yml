@@ -1,6 +1,3 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
-
 name: Node.js CI/CD FacebookClone
 
 on:
@@ -19,19 +16,16 @@ jobs:
     strategy:
       matrix:
         node-version: [22.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
-    - name: Clean previous repo folder
-      run: |
-        sudo rm -rf $GITHUB_WORKSPACE/*
+    - name: Clean previous workspace
+      run: sudo rm -rf $GITHUB_WORKSPACE/*
 
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
         clean: true
-        # cache input không áp dụng cho checkout, nên đã loại bỏ
-  
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -40,11 +34,11 @@ jobs:
 
     - name: Install dependencies
       run: npm ci
-    
+
     - name: Run tests
       run: npm test || true
-    
-    - name: Setup environment
+
+    - name: Setup environment file
       run: |
         cp .env.production .env
         node -e "
@@ -59,96 +53,58 @@ jobs:
             .replace('\$AWS_BUCKET_SECRET_KEY', '${{ secrets.AWS_BUCKET_SECRET_KEY }}')
             .replace('\$AWS_KEY_GROUP', '${{ secrets.AWS_KEY_GROUP }}')
             .replace('\$AWS_PRIVATE_KEY', \`${{ secrets.AWS_PRIVATE_KEY }}\`);
-        fs.writeFileSync('.env', env);"
-        
-        
+          fs.writeFileSync('.env', env);
+        "
+
     - name: Prepare deployment package
       run: |
-        # Create deployment directory if it doesn't exist
-        sudo mkdir -p ${{ env.DEPLOYMENT_DIR }}
-        
-        # Create or update deployment package with only necessary files
-        sudo mkdir -p deployment-package
-        
-        # Copy dist folder (compiled code)
-        sudo cp -r dist deployment-package/
-        
-        # Copy .env file
-        sudo cp .env deployment-package/
-        
-        # Copy package.json and package-lock.json
-        sudo cp package.json package-lock.json deployment-package/
-        
-        # Copy database initialization script
-        sudo mkdir -p deployment-package/dist/scripts
-        sudo cp -r dist/src/scripts/db-init.js deployment-package/dist/scripts/
-        
+        sudo rm -rf deployment-package
+        mkdir -p deployment-package/dist/scripts
+        cp -r dist deployment-package/
+        cp .env package*.json docker-compose.yml deployment-package/
+        cp dist/src/scripts/db-init.js deployment-package/dist/scripts/
+
     - name: Deploy to EC2
       run: |
-        # Dừng ứng dụng đang chạy
-        pm2 stop facebook-clone || true
-        pm2 delete facebook-clone || true
-    
-        # Backup phiên bản cũ (nếu có)
-        if [ -d "${{ env.DEPLOYMENT_DIR }}-backup" ]; then
-          sudo rm -rf ${{ env.DEPLOYMENT_DIR }}-backup
-        fi
-    
-        if [ -d "${{ env.DEPLOYMENT_DIR }}" ]; then
-          sudo mv ${{ env.DEPLOYMENT_DIR }} ${{ env.DEPLOYMENT_DIR }}-backup
-        fi
-        
-        # Copy deployment package to deployment directory
+        # Stop old app if exists
+        pm2 delete facebook-clone || echo "App not running, skipping..."
+
+        # Backup old deployment
+        [ -d "${{ env.DEPLOYMENT_DIR }}-backup" ] && sudo rm -rf ${{ env.DEPLOYMENT_DIR }}-backup
+        [ -d "${{ env.DEPLOYMENT_DIR }}" ] && sudo mv ${{ env.DEPLOYMENT_DIR }} ${{ env.DEPLOYMENT_DIR }}-backup
+
+        # Deploy new code
         sudo cp -r deployment-package ${{ env.DEPLOYMENT_DIR }}
-        
-        # Install production dependencies only
+        sudo chown -R $USER:$USER ${{ env.DEPLOYMENT_DIR }}
+
+        # Install only production dependencies
         cd ${{ env.DEPLOYMENT_DIR }}
-        npm install --production
-        
-    - name: Start Docker containers for database services
+        npm install --omit=dev
+
+    - name: Start Docker services
       run: |
-        
-        # Copy docker-compose file to deployment directory
-        sudo cp docker-compose.yml ${{ env.DEPLOYMENT_DIR }}/
-        
-        # Stop and remove existing containers
         cd ${{ env.DEPLOYMENT_DIR }}
-        docker-compose down
-        
-        # Start the database services
+        docker-compose down || true
         docker-compose up -d mongodb redis rabbitmq
-        
-        # Wait for databases to be ready
-        echo "Waiting for MongoDB to be ready..."
-        sleep 10
-        echo "Waiting for Redis to be ready..."
-        sleep 5
-        echo "Waiting for RabbitMQ to be ready..."
-        sleep 10
-        
-        # Check database connections
+        echo "⏳ Waiting for services..."
+        sleep 20
         docker ps
-    
-    - name: Database migration and seed (if needed)
+
+    - name: Database migration/init
       run: |
-        # Run migrations or initialize database if needed
-        echo "Initializing databases if needed"
         cd ${{ env.DEPLOYMENT_DIR }}
-        node dist/scripts/db-init.js || true
-    
+        node dist/scripts/db-init.js || echo "No migration script or already initialized"
+
     - name: Start application
       run: |
         cd ${{ env.DEPLOYMENT_DIR }}
-        # Start the application with PM2
         pm2 start npm --name "facebook-clone" -- start
         pm2 save
-    
-    - name: Monitor deployment
+
+    - name: Monitor PM2 status
       run: |
-        echo "Application deployed successfully to ${{ env.DEPLOYMENT_DIR }}"
+        echo "✅ Application deployed to ${{ env.DEPLOYMENT_DIR }}"
         pm2 status
-        
-    - name: Cleanup
-      run: |
-        # Remove deployment package
-        rm -rf deployment-package
+
+    - name: Cleanup temp files
+      run: rm -rf deployment-package

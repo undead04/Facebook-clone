@@ -22,15 +22,22 @@ jobs:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
+    - name: Clean previous repo folder
+      run: |
+        sudo rm -rf $GITHUB_WORKSPACE/*
+
     - name: Checkout repository
       uses: actions/checkout@v4
-
-    - name: Use Node.js ${{ matrix.node-version }}
+      with:
+        clean: true
+        # cache input không áp dụng cho checkout, nên đã loại bỏ
+  
+    - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-    
+
     - name: Install dependencies
       run: npm ci
     

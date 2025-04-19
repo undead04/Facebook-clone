@@ -102,7 +102,7 @@ jobs:
         sudo cp -r deployment-package ${{ env.DEPLOYMENT_DIR }}
         
         # Install production dependencies only
-        sudo cd ${{ env.DEPLOYMENT_DIR }}
+        cd ${{ env.DEPLOYMENT_DIR }}
         npm install --production
         
     - name: Start Docker containers for database services
@@ -112,7 +112,7 @@ jobs:
         sudo cp docker-compose.yml ${{ env.DEPLOYMENT_DIR }}/
         
         # Stop and remove existing containers
-        sudo cd ${{ env.DEPLOYMENT_DIR }}
+        cd ${{ env.DEPLOYMENT_DIR }}
         docker-compose down
         
         # Start the database services

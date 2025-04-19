@@ -92,10 +92,10 @@ jobs:
         fi
         
         # Copy deployment package to deployment directory
-        cp -r deployment-package ${{ env.DEPLOYMENT_DIR }}
+        sudo cp -r deployment-package ${{ env.DEPLOYMENT_DIR }}
         
         # Install production dependencies only
-        cd ${{ env.DEPLOYMENT_DIR }}
+        sudo cd ${{ env.DEPLOYMENT_DIR }}
         npm install --production
         
     - name: Start Docker containers for database services

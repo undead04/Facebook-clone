@@ -58,19 +58,19 @@ jobs:
     - name: Prepare deployment package
       run: |
         # Create deployment directory if it doesn't exist
-        sudo mkdir -p ${{ env.DEPLOYMENT_DIR }}
+        mkdir -p ${{ env.DEPLOYMENT_DIR }}
         
         # Create or update deployment package with only necessary files
-        sudo mkdir -p deployment-package
+        mkdir -p deployment-package
         
         # Copy dist folder (compiled code)
-        sudo cp -r dist deployment-package/
+        cp -r dist deployment-package/
         
         # Copy .env file
-        sudo cp .env deployment-package/
+        cp .env deployment-package/
         
         # Copy package.json and package-lock.json
-        sudo cp package.json package-lock.json deployment-package/
+        cp package.json package-lock.json deployment-package/
         
         # Copy database initialization script
         sudo mkdir -p deployment-package/dist/scripts
@@ -78,24 +78,24 @@ jobs:
         
     - name: Deploy to EC2
       run: |
-        # Stop the existing PM2 process if it exists
+        # Dừng ứng dụng đang chạy
         pm2 stop facebook-clone || true
         pm2 delete facebook-clone || true
-        
-        # Backup the current version if exists
+    
+        # Backup phiên bản cũ (nếu có)
         if [ -d "${{ env.DEPLOYMENT_DIR }}-backup" ]; then
-          rm -rf ${{ env.DEPLOYMENT_DIR }}-backup
+          sudo rm -rf ${{ env.DEPLOYMENT_DIR }}-backup
         fi
-        
+    
         if [ -d "${{ env.DEPLOYMENT_DIR }}" ]; then
-          mv ${{ env.DEPLOYMENT_DIR }} ${{ env.DEPLOYMENT_DIR }}-backup
+          sudo mv ${{ env.DEPLOYMENT_DIR }} ${{ env.DEPLOYMENT_DIR }}-backup
         fi
         
         # Copy deployment package to deployment directory
-        sudo cp -r deployment-package ${{ env.DEPLOYMENT_DIR }}
+        cp -r deployment-package ${{ env.DEPLOYMENT_DIR }}
         
         # Install production dependencies only
-        sudo cd ${{ env.DEPLOYMENT_DIR }}
+        cd ${{ env.DEPLOYMENT_DIR }}
         npm install --production
         
     - name: Start Docker containers for database services

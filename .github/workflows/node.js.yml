@@ -58,23 +58,23 @@ jobs:
     - name: Prepare deployment package
       run: |
         # Create deployment directory if it doesn't exist
-        mkdir -p ${{ env.DEPLOYMENT_DIR }}
+        sudo mkdir -p ${{ env.DEPLOYMENT_DIR }}
         
         # Create or update deployment package with only necessary files
-        mkdir -p deployment-package
+        sudo mkdir -p deployment-package
         
         # Copy dist folder (compiled code)
-        cp -r dist deployment-package/
+        sudo cp -r dist deployment-package/
         
         # Copy .env file
-        cp .env deployment-package/
+        sudo cp .env deployment-package/
         
         # Copy package.json and package-lock.json
-        cp package.json package-lock.json deployment-package/
+        sudo cp package.json package-lock.json deployment-package/
         
         # Copy database initialization script
         sudo mkdir -p deployment-package/dist/scripts
-        sudo cp -r dist/scripts/db-init.js deployment-package/dist/scripts/
+        sudo cp -r dist/src/scripts/db-init.js deployment-package/dist/scripts/
         
     - name: Deploy to EC2
       run: |

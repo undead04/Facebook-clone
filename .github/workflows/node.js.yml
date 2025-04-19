@@ -9,22 +9,15 @@ on:
 jobs:
   build-and-deploy:
     runs-on: self-hosted
-    env:
-      NODE_ENV: production
-      DEPLOYMENT_DIR: /ec2-user/facebook-clone-app
 
     strategy:
       matrix:
         node-version: [22.x]
 
     steps:
-    - name: Clean previous workspace
-      run: sudo rm -rf $GITHUB_WORKSPACE/*
 
     - name: Checkout repository
       uses: actions/checkout@v4
-      with:
-        clean: true
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -34,6 +27,9 @@ jobs:
 
     - name: Install dependencies
       run: npm ci
+
+    - name: Build project
+      run: npm run build
 
     - name: Run tests
       run: npm test || true
@@ -52,38 +48,11 @@ jobs:
             .replace('\$AWS_BUCKET_ACESS_KEY', '${{ secrets.AWS_BUCKET_ACESS_KEY }}')
             .replace('\$AWS_BUCKET_SECRET_KEY', '${{ secrets.AWS_BUCKET_SECRET_KEY }}')
             .replace('\$AWS_KEY_GROUP', '${{ secrets.AWS_KEY_GROUP }}')
-            .replace('\$AWS_PRIVATE_KEY', \`${{ secrets.AWS_PRIVATE_KEY }}\`);
+            .replace('\$AWS_PRIVATE_KEY', '${{ secrets.AWS_PRIVATE_KEY }}');
           fs.writeFileSync('.env', env);
         "
-
-    - name: Prepare deployment package
-      run: |
-        sudo rm -rf deployment-package
-        mkdir -p deployment-package/dist/scripts
-        cp -r dist deployment-package/
-        cp .env package*.json docker-compose.yml deployment-package/
-        cp dist/src/scripts/db-init.js deployment-package/dist/scripts/
-
-    - name: Deploy to EC2
-      run: |
-        # Stop old app if exists
-        pm2 delete facebook-clone || echo "App not running, skipping..."
-
-        # Backup old deployment
-        [ -d "${{ env.DEPLOYMENT_DIR }}-backup" ] && sudo rm -rf ${{ env.DEPLOYMENT_DIR }}-backup
-        [ -d "${{ env.DEPLOYMENT_DIR }}" ] && sudo mv ${{ env.DEPLOYMENT_DIR }} ${{ env.DEPLOYMENT_DIR }}-backup
-
-        # Deploy new code
-        sudo cp -r deployment-package ${{ env.DEPLOYMENT_DIR }}
-        sudo chown -R $USER:$USER ${{ env.DEPLOYMENT_DIR }}
-
-        # Install only production dependencies
-        cd ${{ env.DEPLOYMENT_DIR }}
-        npm install --omit=dev
-
     - name: Start Docker services
       run: |
-        cd ${{ env.DEPLOYMENT_DIR }}
         docker-compose down || true
         docker-compose up -d mongodb redis rabbitmq
         echo "⏳ Waiting for services..."
@@ -92,19 +61,16 @@ jobs:
 
     - name: Database migration/init
       run: |
-        cd ${{ env.DEPLOYMENT_DIR }}
-        node dist/scripts/db-init.js || echo "No migration script or already initialized"
+        node dist/src/scripts/db-init.js || echo "No migration script or already initialized"
 
     - name: Start application
       run: |
-        cd ${{ env.DEPLOYMENT_DIR }}
+        pm2 stop facebook-clone || true
+        pm2 delete facebook-clone || true
         pm2 start npm --name "facebook-clone" -- start
         pm2 save
 
     - name: Monitor PM2 status
       run: |
-        echo "✅ Application deployed to ${{ env.DEPLOYMENT_DIR }}"
+        echo "✅ Application deployed successfully"
         pm2 status
-
-    - name: Cleanup temp files
-      run: rm -rf deployment-package

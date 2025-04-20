@@ -10,9 +10,13 @@ import {
   getInfoData,
   verifyToken,
 } from "../utils";
-import {  getCacheID, setCacheIDExprication,deleteCacheID } from "../models/Repo/cache.repo";
+import {
+  getCacheID,
+  setCacheIDExprication,
+  deleteCacheID,
+} from "../models/Repo/cache.repo";
 import { OtpStrategyFactory, typeOTP } from "./verifyOTP/OtpStrategyFactory";
-import {UserRepo} from "../models/Repo/user.repo"
+import { UserRepo } from "../models/Repo/user.repo";
 export class AuthService {
   private userRepo = new UserRepo();
   // register
@@ -24,7 +28,7 @@ export class AuthService {
     if (user) {
       throw new BadRequestError("User already exists");
     }
-
+    console.log(user, email);
     // hash password
     const hashedPassword = await hashPassword(password);
 
@@ -40,7 +44,7 @@ export class AuthService {
       },
     });
 
-    await this.sendOTP(email,typeOTP.register);
+    await this.sendOTP(email, typeOTP.register);
 
     return "Register successfully";
   };
@@ -120,47 +124,47 @@ export class AuthService {
     return accessToken;
   };
 
-  async sendOTP(email: string,type:typeOTP) {
+  async sendOTP(email: string, type: typeOTP) {
     const factory = OtpStrategyFactory.getStrategy(type);
     await factory.sendOTP(email);
   }
 
-  async verifyUser(email:string,otp:string){
-    const user = await this.userRepo.findbyEmail(email); 
-    if(user && user.isVerified){
-      throw new BadRequestError("User already verified")
+  async verifyUser(email: string, otp: string) {
+    const user = await this.userRepo.findbyEmail(email);
+    if (user && user.isVerified) {
+      throw new BadRequestError("User already verified");
     }
     const factory = OtpStrategyFactory.getStrategy(typeOTP.register);
-    const isOTP =  await factory.verifyOTP(email,otp);
-    if(!isOTP){
-      throw new BadRequestError("OTP is invalid")
+    const isOTP = await factory.verifyOTP(email, otp);
+    if (!isOTP) {
+      throw new BadRequestError("OTP is invalid");
     }
     await this.userRepo.findByUpdateVerify(email);
   }
 
-  async verifyPassword(email:string,otp:string){
+  async verifyPassword(email: string, otp: string) {
     const factory = OtpStrategyFactory.getStrategy(typeOTP.forgot);
-    const isOTP =  await factory.verifyOTP(email,otp);
-    if(!isOTP){
-      throw new BadRequestError("OTP is invalid")
+    const isOTP = await factory.verifyOTP(email, otp);
+    if (!isOTP) {
+      throw new BadRequestError("OTP is invalid");
     }
-    const newOTP = generateOTP()
-    const key = `password:${email}`
-    await setCacheIDExprication({ key, value: newOTP, exp: 60 * 15 })
+    const newOTP = generateOTP();
+    const key = `password:${email}`;
+    await setCacheIDExprication({ key, value: newOTP, exp: 60 * 15 });
     return {
-      newOTP
-    }
+      newOTP,
+    };
   }
 
-  async forgotPassword(otp:string,email:string,password:string){
-    const key = `password:${email}`
-    const cacheOTP = await getCacheID({key})
+  async forgotPassword(otp: string, email: string, password: string) {
+    const key = `password:${email}`;
+    const cacheOTP = await getCacheID({ key });
     console.log(cacheOTP);
-    if(otp !== cacheOTP){
-      throw new BadRequestError("OTP is invalid")
+    if (otp !== cacheOTP) {
+      throw new BadRequestError("OTP is invalid");
     }
-    const passwordHash = await hashPassword(password)
-    await this.userRepo.findByUpdatePassword(email,passwordHash)
-    await deleteCacheID({key})
+    const passwordHash = await hashPassword(password);
+    await this.userRepo.findByUpdatePassword(email, passwordHash);
+    await deleteCacheID({ key });
   }
 }

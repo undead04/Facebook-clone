@@ -1,25 +1,24 @@
 import { connectRabbitMQ } from "../databases/init.rabbitmq";
-export interface IPostPublishOption{
+export interface IPostPublishOption {
   userId: string;
   content: string;
   imagesName: string;
-  typePost: string
+  typePost: string;
 }
-export const postPublish = async (data:IPostPublishOption ) => {
+export const postPublish = async (data: IPostPublishOption) => {
   try {
-    const {channel} = await connectRabbitMQ();
+    const { channel } = await connectRabbitMQ();
     const postQueue = "postQueue";
-    const retryQueue = "emailRetryQueue";
-
     const postExchange = "post-exchange";
-    const postRoutingKey = "email.routing.key";
-    
+    const postRoutingKey = "post.routing.key";
+
     const postExchangeDLX = "post-exchange-dlx";
     const postDLXRoutingKey = "post-dlx.routing.key";
 
+    const retryQueue = "postRetryQueue";
     const retryExchange = "post-retry-exchange";
     const retryRoutingKey = "post.retry.routing.key";
-    
+
     // 1. Tạo exchange retry để xử lý retry sau khi thất bại
     await channel.assertExchange(retryExchange, "direct", { durable: true });
     await channel.assertQueue(retryQueue, {
@@ -37,10 +36,8 @@ export const postPublish = async (data:IPostPublishOption ) => {
     // 2. Tạo queue chính và cấu hình TTL + DLX
     await channel.assertQueue(postQueue, {
       durable: true,
-      exclusive:true,
       deadLetterExchange: postExchangeDLX,
       deadLetterRoutingKey: postDLXRoutingKey,
-      messageTtl: 10000, // TTL tại đây hoặc set lúc send
     });
 
     // 4. Bind queue chính vào exchange chính

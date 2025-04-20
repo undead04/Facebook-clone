@@ -10,9 +10,6 @@ const start = async () => {
   await emailConsumer.consumerToQueueNormal();
   await emailConsumer.consumerToQueueFailed();
 
-  await notifiConsumer.consumerToQueueNormal();
-  await notifiConsumer.consumerToQueueFailed();
-
   await postConsumer.consumerToQueueNormal();
   await postConsumer.consumerToQueueFailed();
 };

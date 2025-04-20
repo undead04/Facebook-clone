@@ -8,7 +8,7 @@ export interface IUser extends Document {
   createdAt: Date;
   updatedAt: Date;
   refreshToken: string;
-  isDelete:boolean;
+  isDelete: boolean;
   profile: {
     firstName: string;
     lastName: string;
@@ -32,8 +32,6 @@ const userSchema = new Schema<IUser>(
       lastName: { type: String, required: true },
       avatarName: { type: String, default: "" },
       coverPhotoName: { type: String, default: "" },
-      avatarUrl: { type: String, default: "" },
-      coverPhotoUrl: { type: String, default: "" },
       bio: { type: String, default: "" },
       birthday: { type: Date, default: null },
       location: { type: String, default: "" },

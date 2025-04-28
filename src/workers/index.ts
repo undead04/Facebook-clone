@@ -12,5 +12,8 @@ const start = async () => {
 
   await postConsumer.consumerToQueueNormal();
   await postConsumer.consumerToQueueFailed();
+
+  await notifiConsumer.consumerToQueueNormal();
+  await notifiConsumer.consumerToQueueFailed();
 };
 start().catch((error) => console.error(`Rabbit MQ : ${error.message}`, error));

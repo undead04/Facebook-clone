@@ -14,13 +14,13 @@ import {
   PostInput,
   UpdateStatusPostInput,
 } from "../../validations/post/PostInput";
-import {uploadMemory} from "../../middlewares/multer.middleware";
+import { uploadMemory } from "../../middlewares/multer.middleware";
 const router = Router();
 router.use(authMiddleware);
 
 router.post(
   "/create",
-  uploadMemory.array("post"),
+  uploadMemory.array("images", 10), // Allow up to 10 images with field name "images"
   validateBody(PostInput),
   createPost
 );
@@ -32,7 +32,11 @@ router.patch(
   validateBody(UpdateStatusPostInput),
   updateStatusPost
 );
-router.put("/:postId", uploadMemory.array("post"), updatePost);
+router.put(
+  "/:postId",
+  uploadMemory.array("images", 10), // Allow up to 10 images with field name "images"
+  updatePost
+);
 router.get("/cursor", getPostsByCursor);
 router.get("/:postId", getPostById);
 export default router;

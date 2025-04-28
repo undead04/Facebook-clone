@@ -8,7 +8,6 @@ export interface IUser extends Document {
   createdAt: Date;
   updatedAt: Date;
   refreshToken: string;
-  isDelete: boolean;
   profile: {
     firstName: string;
     lastName: string;
@@ -26,7 +25,6 @@ const userSchema = new Schema<IUser>(
     password: { type: String, required: true },
     isVerified: { type: Boolean, default: false },
     refreshToken: { type: String, default: "" },
-    isDelete: { type: Boolean, default: false },
     profile: {
       firstName: { type: String, required: true },
       lastName: { type: String, required: true },

@@ -4,13 +4,18 @@ import asyncHandle from "../helpers/asyncHandle";
 import { CREATED, OK } from "../middlewares/success.response";
 const service = new PostService();
 export const createPost = asyncHandle(async (req: Request, res: Response) => {
-  const body = req.body;
+  const { content, statusPost } = req.body;
   const userId = (req as any).user._id;
-  console.log(userId, "userId");
   const images = req.files as Express.Multer.File[];
+
   new CREATED({
     message: "Create post successfully",
-    metaData: await service.createPost({ ...body, images, userId }),
+    metaData: await service.createPost({
+      userId,
+      content,
+      statusPost,
+      images: images || [],
+    }),
   }).send(res);
 });
 
@@ -62,15 +67,15 @@ export const updateStatusPost = asyncHandle(
 
 export const updatePost = asyncHandle(async (req: Request, res: Response) => {
   const postId = req.params.postId;
-  const body = req.body;
+  const { content, statusPost } = req.body;
+  const userId = (req as any).user._id;
   const images = req.files as Express.Multer.File[];
-  const activeUserId = (req as any).user._id;
-  console.log(images, "images");
   new OK({
     message: "Update post successfully",
-    metaData: await service.updatePost(activeUserId, postId, {
-      ...body,
+    metaData: await service.updatePost(userId, postId, {
+      content,
       images,
+      statusPost,
     }),
   }).send(res);
 });

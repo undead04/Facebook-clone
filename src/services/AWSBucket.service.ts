@@ -10,8 +10,31 @@ import { s3Config as s3 } from "../configs/s3.config";
 import config from "../configs/config";
 
 export class AWSBucketService {
-  // ✅ Upload file từ local (Multer)
-  uploadImageFromLocal = async (file: Express.Multer.File, folder: string) => {
+  // ✅ Upload multiple files from local (Multer)
+  async uploadImagesFromLocal(files: Express.Multer.File[], folder: string) {
+    try {
+      const uploadPromises = files.map(async (file) => {
+        const newImageName = `${folder}/${Date.now()}-${file.originalname}`;
+        const command = new PutObjectCommand({
+          Bucket: config.awsBucketName,
+          Key: newImageName,
+          Body: file.buffer,
+          ContentType: file.mimetype,
+        });
+
+        await s3.send(command);
+        return { key: newImageName };
+      });
+
+      const results = await Promise.all(uploadPromises);
+      return results;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // ✅ Upload single file from local (Multer)
+  async uploadImageFromLocal(file: Express.Multer.File, folder: string) {
     try {
       const newImageName = `${folder}/${Date.now()}-${file.originalname}`;
       const command = new PutObjectCommand({
@@ -22,12 +45,11 @@ export class AWSBucketService {
       });
 
       await s3.send(command);
-
       return { key: newImageName };
     } catch (error) {
       throw error;
     }
-  };
+  }
 
   // ✅ Kiểm tra ảnh có tồn tại theo URL hay không
   async existsImageByUrl(url: string): Promise<boolean> {
@@ -44,20 +66,43 @@ export class AWSBucketService {
       throw err;
     }
   }
-
-  // ✅ Xóa ảnh theo URL
-  async deleteImageByUrl(url: string): Promise<boolean> {
+  // xóa list ảnh
+  async deleteImagesByUrl(urls: string[]): Promise<boolean> {
     try {
-      const key = this.extractKeyFromUrl(url);
-      const command = new DeleteObjectCommand({
-        Bucket: config.awsBucketName,
-        Key: key,
+      const deletePromises = urls.map(async (url) => {
+        return await this.deleteImageByUrl(url);
       });
-      await s3.send(command);
+      await Promise.all(deletePromises);
       return true;
     } catch (err) {
       throw err;
     }
+  }
+  // ✅ Xóa ảnh theo URL
+  async deleteImageByUrl(url: string): Promise<boolean> {
+    try {
+      const key = this.extractKeyFromUrl(url);
+      const isExits = await this.existsImageByUrl(url);
+      if (isExits) {
+        const command = new DeleteObjectCommand({
+          Bucket: config.awsBucketName,
+          Key: key,
+        });
+        await s3.send(command);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      throw err;
+    }
+  }
+  // getImageURL
+  getImagesByUrl(urls: string[]) {
+    const urlImages = urls.map((url) => {
+      const urlPublic = this.getImageByUrl(url);
+      return urlPublic;
+    });
+    return urlImages;
   }
   // getImage
   getImageByUrl(url: string) {

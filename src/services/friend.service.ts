@@ -1,16 +1,17 @@
 import { FriendInput } from "../validations/friend";
 import friendModel from "../models/friend.model";
-import userModel from "../models/user.model";
+
 import { BadRequestError } from "../middlewares/error.response";
-import {UserRepo} from "../models/Repo/user.repo";
+import { UserRepo } from "../models/Repo/user.repo";
+import { AWSBucketService } from "./AWSBucket.service";
 export class FriendService {
-  private userRepo = new UserRepo()
+  private userRepo = new UserRepo();
+  private awsAmazon = new AWSBucketService();
   async createFriend(data: FriendInput) {
     const { userId, friendId } = data;
 
     const user = await this.userRepo.findById(userId);
-    const friendUser = await this.userRepo.findById(userId);
-
+    const friendUser = await this.userRepo.findById(friendId);
     // check verify friendUser
     if (friendUser?.isVerified === false) {
       throw new BadRequestError("Friend user is not verified");
@@ -187,41 +188,45 @@ export class FriendService {
       },
       // create list userId
       {
-        $project:{
-          frindUser:{
+        $project: {
+          friendUser: {
             $cond: {
               if: { $eq: ["$userId", userId] },
-              then: "$friendId", // Nếu bạn là người gửi, đối tác là người nhận
-              else: "$userId", // Nếu bạn không phải người gửi (vậy bạn là người nhận), đối tác là người gửi
+              then: "$friendId",
+              else: "$userId",
             },
-          }
-        }
+          },
+        },
       },
-      // 4. (Tùy chọn) Lookup thêm thông tin của người dùng
+      // Lookup user info
       {
         $lookup: {
-          from: "users", // tên collection chứa thông tin người dùng; đảm bảo tên đúng collection trong MongoDB
-          localField: "_id", // _id ở đây chính là otherUser id
-          foreignField: "_id", // trường _id trong collection users
+          from: "users",
+          localField: "friendUser",
+          foreignField: "_id",
           as: "userInfo",
         },
       },
-      // 5. Unwind userInfo nếu bạn muốn lấy object thay vì mảng
       {
         $unwind: "$userInfo",
       },
       {
         $skip: skip,
-        $limit:limit
       },
-      // 6. Dự án chỉ những field bạn cần (vd: id và thông tin user)
+      {
+        $limit: limit,
+      },
       {
         $project: {
           _id: 1,
-          userInfo: 1,
+          "userInfo._id": 1,
+          "userInfo.profile.firstName": 1,
+          "userInfo.profile.lastName": 1,
+          "userInfo.profile.urlImageAvatar":
+            this.awsAmazon.getImageByUrl("$friendId"),
         },
       },
-    ])
+    ]);
     return friends;
   }
 
@@ -239,6 +244,7 @@ export class FriendService {
       .lean();
     return friendRequests;
   }
+
   async findByNameFriend(
     userId: string,
     search: string,

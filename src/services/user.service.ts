@@ -39,7 +39,6 @@ export class UserService {
     // find user DB
     const user = await userModel
       .findById(userId)
-      .where({ isDelete: false })
       .select(["_id", "createdAt", "profile"]);
 
     // set Cache
@@ -238,10 +237,7 @@ export class UserService {
   };
 
   async deleteUser(userId: string) {
-    await userModel.findByIdAndUpdate(userId, {
-      $set: { isDeleted: true },
-      new: true,
-    });
+    await userModel.findByIdAndDelete(userId);
     await this.deleteCacheUser(userId);
   }
 

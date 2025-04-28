@@ -9,11 +9,15 @@ import friendModel from "../models/friend.model";
 import { ForbiddenError, NotFoundError } from "../middlewares/error.response";
 import { Types } from "mongoose";
 import { UserRepo } from "../models/Repo/user.repo";
+import { AWSBucketService } from "./AWSBucket.service";
+
 export class PostService {
-  private userRepo = new UserRepo()
+  private userRepo = new UserRepo();
+  private awsService = new AWSBucketService();
   async createPost({ userId, content, images, statusPost }: ICreatePost) {
     // check user
     const user = await this.userRepo.findById(userId);
+
     if (!user) {
       throw new NotFoundError("User not found");
     }
@@ -23,14 +27,20 @@ export class PostService {
       content,
       statusPost,
     });
-    // upload images rabbitmq
     if (images) {
       if (images.length > 0) {
-        
+        const result = await this.awsService.uploadImagesFromLocal(
+          images,
+          "post"
+        );
+        const imagesName = result.map((item) => item.key);
+        newPost.imagesName = imagesName;
+        newPost.save();
       }
     }
-    return "Create post successfully";
+    return newPost;
   }
+
   async getPosts(
     activeUserId: string,
     page: number,
@@ -73,26 +83,16 @@ export class PostService {
       })
       .populate({
         path: "userId",
-        select: "profile.avatarUrl profile.firstName profile.lastName _id",
+        select: "profile.firstName profile.lastName profile.urlImageAvatar _id",
       })
-      .select([
-        "_id",
-        "userId",
-        "imagesUrl",
-        "imagesName",
-        "content",
-        "countLike",
-        "countComment",
-        "statusPost",
-        "createdAt",
-        "updatedAt",
-      ])
-      .sort({ createdAt: -1 }) // gợi ý: sắp xếp mới nhất trước
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
 
-    return posts;
+    return posts.map((post: any) => {
+      return this.selectPost(post);
+    });
   }
 
   async getPostById(activeUserId: string, postId: string) {
@@ -125,7 +125,7 @@ export class PostService {
       throw new ForbiddenError("You are not allowed to see this post");
     }
 
-    return post;
+    return this.selectPost(post);
   }
   async updateStatusPost(
     activeUserId: string,
@@ -155,7 +155,7 @@ export class PostService {
   async updatePost(
     activeUser: Types.ObjectId,
     postId: string,
-    { content, images }: PostInput
+    { content, images, statusPost }: PostInput
   ) {
     // check post
     const post = await postModel.findById(postId);
@@ -172,11 +172,17 @@ export class PostService {
       throw new ForbiddenError("You are not allowed to update this post");
     }
     // update post
-    post.content = content;
-    // upload images rabbitmq
+    Object.assign({ content, statusPost }, post);
+
     if (images) {
       if (images.length > 0) {
-        
+        await this.awsService.deleteImagesByUrl(post.imagesName);
+        const result = await this.awsService.uploadImagesFromLocal(
+          images,
+          "post"
+        );
+        const imagesName = result.map((item) => item.key);
+        post.imagesName = imagesName;
       }
     }
     await post.save();
@@ -231,13 +237,27 @@ export class PostService {
       { $limit: limit },
     ]);
 
-    return posts;
+    return posts.map((post) => {
+      return this.selectPost(post);
+    });
   }
-  private async setCachePost(postId:string,value:any) {
-
+  private selectPost(post: any) {
+    return {
+      _id: post._id,
+      userId: {
+        _id: post.userId._id,
+        firstName: post.userId.firstName,
+        lastName: post.userId.lastName,
+        urlImagesAvatar: this.awsService.getImageByUrl(post.userId.avatarName),
+      },
+      content: post.content,
+      createAt: post.createdAt,
+      countLike: post.countLike,
+      countComment: post.countComment,
+      urlImages:
+        post.imagesName && post.imagesName.length > 0
+          ? this.awsService.getImagesByUrl(post.imagesName)
+          : [],
+    };
   }
-  private async getCachePost(postId:string){
-
-  }
-  private async deleteCacheDelete(postId:string){}
 }
